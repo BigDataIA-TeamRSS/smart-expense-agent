@@ -18,9 +18,9 @@ class Config:
     
     # Data storage paths
     DATA_DIR = Path("data")
-    USERS_FILE = DATA_DIR / "users.json"
-    ACCOUNTS_FILE = DATA_DIR / "accounts.json"
-    TRANSACTIONS_FILE = DATA_DIR / "transactions.json"
+    USERS_FILE = DATA_DIR / "json_db" / "users.json"
+    ACCOUNTS_FILE = DATA_DIR / "json_db" / "accounts.json"
+    TRANSACTIONS_FILE = DATA_DIR / "json_db" / "transactions.json"
     
     # App settings
     APP_NAME = "Smart Expense Analyzer POC"

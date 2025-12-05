@@ -1,0 +1,46 @@
+{
+  "94007acf-5031-4993-8365-dd34eff5af06": [
+    {
+      "account_id": "dVGk34nlpKur9pkd5ddpHaobMwr81PSlyj6Gv",
+      "name": "Plaid Saving",
+      "type": "depository",
+      "subtype": "savings",
+      "mask": "1111",
+      "current_balance": 210.0,
+      "available_balance": 200.0,
+      "limit": null,
+      "currency": "USD",
+      "official_name": "Plaid Silver Standard 0.1% Interest Saving",
+      "verification_status": null,
+      "access_token": "access-sandbox-fb217ee1-c4fa-4f29-ac3d-b2c42d6cc67b",
+      "item_id": "oVxGmp3Rrju37JGDPDDJuJ6W1ZWNANcRmJmwe",
+      "institution_name": "First Gingham Credit Union",
+      "institution_id": "ins_109509",
+      "id": "d0071ab2-8820-4512-915c-f26147f54e98",
+      "created_at": "2025-12-04T20:32:33.715974",
+      "last_synced": "2025-12-04T21:45:14.664640",
+      "cursor": "CAESJXdWZ0dYbjd6TnB1N2s2R3dNd3c2dTZnQUt4eFBiNGNxbWxlVjYaCwiy7MjJBhDw4o47IgsIsuzIyQYQ8OKOOyoLCLLsyMkGEPDijjs="
+    },
+    {
+      "account_id": "aVo8rxWEMAuLgaKZEZZaSbD65JlemWCo6BePr",
+      "name": "Plaid Cash Management",
+      "type": "depository",
+      "subtype": "cash management",
+      "mask": "9002",
+      "current_balance": 12060.0,
+      "available_balance": 12060.0,
+      "limit": null,
+      "currency": "USD",
+      "official_name": "Plaid Growth Cash Management",
+      "verification_status": null,
+      "access_token": "access-sandbox-fb217ee1-c4fa-4f29-ac3d-b2c42d6cc67b",
+      "item_id": "oVxGmp3Rrju37JGDPDDJuJ6W1ZWNANcRmJmwe",
+      "institution_name": "First Gingham Credit Union",
+      "institution_id": "ins_109509",
+      "id": "f49c30d7-ce03-4ca6-8ee2-dfc16e3843db",
+      "created_at": "2025-12-04T20:32:33.716635",
+      "last_synced": "2025-12-04T21:45:15.378155",
+      "cursor": "CAESJXdWZ0dYbjd6TnB1N2s2R3dNd3c2dTZnQUt4eFBiNGNxbWxlVjYaCwiy7MjJBhDw4o47IgsIsuzIyQYQ8OKOOyoLCLLsyMkGEPDijjs="
+    }
+  ]
+}
