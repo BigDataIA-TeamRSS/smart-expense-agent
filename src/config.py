@@ -60,7 +60,21 @@ class Config:
     # Gemini API (for PDF parsing)
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     
-    # Data storage paths
+    # Database Configuration
+    # Set USE_POSTGRESQL=true to use PostgreSQL, otherwise uses JSON files
+    USE_POSTGRESQL = os.getenv("USE_POSTGRESQL", "false").lower() == "true"
+    
+    # PostgreSQL / Cloud SQL Configuration
+    # For local development: postgresql://user:password@localhost:5432/dbname
+    # For Cloud SQL: Leave connection_string empty and set use_cloud_sql=True
+    DB_CONNECTION_STRING = os.getenv("DB_CONNECTION_STRING", "")
+    USE_CLOUD_SQL = os.getenv("USE_CLOUD_SQL", "false").lower() == "true"
+    CLOUD_SQL_CONNECTION_NAME = os.getenv("CLOUD_SQL_CONNECTION_NAME", "")  # project:region:instance
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+    DB_NAME = os.getenv("DB_NAME", "smart_expense_db")
+    
+    # Data storage paths (for JSON fallback or migration)
     DATA_DIR = Path("data")
     JSON_DB_DIR = DATA_DIR / "json_db"
     USERS_FILE = JSON_DB_DIR / "users.json"

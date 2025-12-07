@@ -1,5 +1,5 @@
 # database.py
-"""JSON-based database operations for Smart Expense Analyzer POC"""
+"""Database operations for Smart Expense Analyzer - supports both JSON and PostgreSQL"""
 
 import json
 import hashlib
@@ -10,12 +10,24 @@ from typing import Dict, List, Optional, Any
 
 from src.config import Config
 
+# Import PostgreSQL database if configured
+if Config.USE_POSTGRESQL:
+    from src.database_postgresql import PostgreSQLDatabase
+
 # class Config:
 #     """Configuration settings (put this in database.py if you don't have config.py)"""
 #     DATA_DIR = Path("data")
 #     USERS_FILE = DATA_DIR / "users.json"
 #     ACCOUNTS_FILE = DATA_DIR / "accounts.json"
 #     TRANSACTIONS_FILE = DATA_DIR / "transactions.json"
+
+def get_database():
+    """Factory function to get the appropriate database instance"""
+    if Config.USE_POSTGRESQL:
+        return PostgreSQLDatabase()
+    else:
+        return JSONDatabase()
+
 
 class JSONDatabase:
     """Simple JSON file-based database for POC"""
