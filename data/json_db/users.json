@@ -1,16 +1,1 @@
-{
-  "95c6e28f-12a7-4f4d-b9f1-f014c085e577": {
-    "user_id": "95c6e28f-12a7-4f4d-b9f1-f014c085e577",
-    "email": "shah.som@northeastern.edu",
-    "username": "somil",
-    "password_hash": "2251e058ec7837bc6a5f6c00a4b5df85ec3f2fa563e590d113826e3b3d40fbb0",
-    "created_at": "2025-12-04T19:43:36.544918"
-  },
-  "somil": {
-    "id": "94007acf-5031-4993-8365-dd34eff5af06",
-    "username": "somil",
-    "password": "2251e058ec7837bc6a5f6c00a4b5df85ec3f2fa563e590d113826e3b3d40fbb0",
-    "email": "somil.code@gmail.com",
-    "created_at": "2025-12-04T20:30:29.593512"
-  }
-}
+{}

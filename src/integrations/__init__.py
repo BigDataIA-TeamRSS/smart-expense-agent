@@ -1,0 +1,1 @@
+"""Integrations module for Smart Expense Analyzer"""
