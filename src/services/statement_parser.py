@@ -16,6 +16,7 @@ import io
 import json
 import re
 import hashlib
+import time
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -483,8 +484,15 @@ def extract_text_from_pdf(pdf_source: Union[str, bytes, Path]) -> tuple[str, int
 
 # ============== Prompt Builder ==============
 
-def build_parsing_prompt(text: str, bank_type: BankType, account_type: AccountType) -> str:
-    """Build the Gemini prompt based on detected bank/account type."""
+def build_parsing_prompt(text: str, bank_type: BankType, account_type: AccountType, previous_errors: Optional[List[str]] = None) -> str:
+    """Build the Gemini prompt based on detected bank/account type.
+    
+    Args:
+        text: The statement text to parse
+        bank_type: Detected bank type
+        account_type: Detected account type
+        previous_errors: Optional list of error messages from previous attempts
+    """
     
     # Bank-specific hints
     bank_hints = {
@@ -516,13 +524,27 @@ For CHECKING/SAVINGS:
 - Withdrawals, purchases, transfers out, bills, Zelle sent = DEBIT (money spent)
 - Extract: beginning balance, ending balance"""
 
+    # Build error context if previous errors exist
+    error_context = ""
+    if previous_errors:
+        error_context = f"""
+
+⚠️ PREVIOUS ATTEMPT ERRORS (DO NOT REPEAT THESE MISTAKES):
+{chr(10).join(f"- {error}" for error in previous_errors)}
+
+IMPORTANT: The previous parsing attempt failed due to the errors above. Please:
+1. Carefully review the error messages and understand what went wrong
+2. Ensure all values are valid (e.g., dates are valid YYYY-MM-DD format)
+3. Double-check all values before returning.
+"""
+
     return f"""You are a financial document parser. Parse this bank statement and extract ALL transactions.
 
 BANK DETECTED: {get_bank_display_name(bank_type)}
 ACCOUNT TYPE: {account_type.value}
 {bank_hint}
 {type_rules}
-
+{error_context}
 STATEMENT TEXT:
 {text}
 
@@ -530,10 +552,9 @@ CRITICAL RULES:
 1. Extract EVERY transaction - do not skip any, even small amounts
 2. All amounts must be POSITIVE numbers (use transaction_type for direction)
 3. Dates must be YYYY-MM-DD format (infer year from statement period if needed)
-4. Clean merchant descriptions but preserve identifying information
-5. Detect recurring transactions (subscriptions, utilities, etc.)
-6. Set parsing_confidence 0.0-1.0 based on text clarity
-7. Add any issues or uncertainties to parsing_notes
+4. Do not clean payment descriptions but preserve identifying information
+5. Set parsing_confidence 0.0-1.0 based on text clarity
+6. Add any issues or uncertainties to parsing_notes
 
 Return ONLY valid JSON with this exact structure:
 {{
@@ -619,7 +640,7 @@ class StatementParser:
         try:
             import google.generativeai as genai
             genai.configure(api_key=gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-flash-lite-latest')
+            self.model = genai.GenerativeModel('gemini-2.0-flash-lite')
             self._genai = genai
             self.output_dir = Path(output_dir)
             self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -641,7 +662,8 @@ class StatementParser:
         pdf_source: Union[str, bytes, Path],
         filename: str = None,
         save_json: bool = True,
-        sanitize_pii: bool = True
+        sanitize_pii: bool = True,
+        previous_errors: Optional[List[str]] = None
     ) -> ParsedStatement:
         """
         Parse a bank statement PDF.
@@ -685,7 +707,7 @@ class StatementParser:
         logger.info(f"Detected: {bank_type.value} / {account_type.value}")
         
         # Step 4: Build prompt and call Gemini (with sanitized text)
-        prompt = build_parsing_prompt(text, bank_type, account_type)
+        prompt = build_parsing_prompt(text, bank_type, account_type, previous_errors=previous_errors)
         
         try:
             response = self.model.generate_content(
@@ -744,10 +766,17 @@ class StatementParser:
         
         last_error = None
         best_result = None
+        previous_errors = []  # Track errors from previous attempts
         
         for attempt in range(max_retries + 1):
             try:
-                result = self.parse(pdf_source, filename, save_json=False, sanitize_pii=sanitize_pii)
+                result = self.parse(
+                    pdf_source, 
+                    filename, 
+                    save_json=False, 
+                    sanitize_pii=sanitize_pii,
+                    previous_errors=previous_errors if attempt > 0 else None
+                )
                 
                 # Keep best result
                 if best_result is None or result.parsing_confidence > best_result.parsing_confidence:
@@ -759,12 +788,25 @@ class StatementParser:
                     return result
                 
                 if attempt < max_retries:
-                    logger.warning(f"Low confidence ({result.parsing_confidence:.0%}), retrying...")
+                    logger.warning(f"Low confidence ({result.parsing_confidence:.0%}), retrying in 60 seconds...")
+                    time.sleep(60)  # Wait 1 minute before retry
                     
             except Exception as e:
                 last_error = e
+                
+                # Extract validation error details for LLM feedback
+                error_message = str(e)
+                if "validation error" in error_message.lower() or "value error" in error_message.lower():
+                    # Extract useful error information
+                    error_summary = self._extract_validation_errors(error_message)
+                    if error_summary:
+                        previous_errors.append(error_summary)
+                        logger.info(f"Extracted validation error for retry: {error_summary}")
+                
                 if attempt < max_retries:
-                    logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                    logger.warning(f"Attempt {attempt + 1} failed: {error_message}")
+                    logger.info("Waiting 60 seconds before retry...")
+                    time.sleep(60)  # Wait 1 minute before retry
         
         # Return best result or raise error
         if best_result:
@@ -773,6 +815,69 @@ class StatementParser:
             return best_result
         
         raise last_error or ValueError("Parsing failed")
+    
+    def _extract_validation_errors(self, error_message: str) -> Optional[str]:
+        """Extract meaningful validation error information for LLM feedback.
+        
+        Args:
+            error_message: The full error message from Pydantic validation
+            
+        Returns:
+            A concise error summary string, or None if not a validation error
+        """
+        # Look for common validation error patterns
+        if "validation error" not in error_message.lower() and "value error" not in error_message.lower():
+            return None
+        
+        # Extract field names and error details
+        errors = []
+        
+        # Pattern for field errors like "transactions.3.date"
+        field_pattern = r'(\w+(?:\.\w+)*)\.(\w+)'
+        # Pattern for error messages like "Cannot parse date: 2025-04-00"
+        value_pattern = r'Cannot parse (\w+):\s*([^\s\[\]]+)'
+        
+        # Find all field errors
+        for line in error_message.split('\n'):
+            line = line.strip()
+            if not line or line.startswith('For further information'):
+                continue
+            
+            # Match field patterns
+            field_match = re.search(field_pattern, line)
+            value_match = re.search(value_pattern, line)
+            
+            if field_match and value_match:
+                field_path = field_match.group(1)  # e.g., "transactions.3"
+                field_name = field_match.group(2)  # e.g., "date"
+                error_type = value_match.group(1)  # e.g., "date"
+                invalid_value = value_match.group(2)  # e.g., "2025-04-00"
+                
+                # Create a helpful error message
+                if error_type == "date":
+                    errors.append(
+                        f"Invalid date format in {field_path}.{field_name}: '{invalid_value}'. "
+                        f"Dates must be valid YYYY-MM-DD format (e.g., 2025-04-15). "
+                        f"Never use '00' or 'XX' as placeholders. If date is unclear, use null."
+                    )
+                else:
+                    errors.append(
+                        f"Invalid {error_type} in {field_path}.{field_name}: '{invalid_value}'"
+                    )
+            elif field_match:
+                # Just field info without value
+                field_path = field_match.group(1)
+                field_name = field_match.group(2)
+                errors.append(f"Validation error in {field_path}.{field_name}")
+        
+        if errors:
+            return "; ".join(errors)
+        
+        # Fallback: return a simplified version of the error
+        if "date" in error_message.lower():
+            return "Date validation error: Ensure all dates are valid YYYY-MM-DD format, never use '00' or 'XX' as placeholders"
+        
+        return "Validation error occurred - please check all field formats"
     
     def _parse_response(
         self, 
