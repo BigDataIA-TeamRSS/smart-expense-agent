@@ -114,7 +114,7 @@ sys.path.insert(0, str(project_root))
 
 import streamlit as st
 from src.config import Config
-from src.database import JSONDatabase
+from src.database import get_database
 from src.plaid_service import PlaidService
 
 # Import page modules
@@ -125,7 +125,7 @@ from src.auth import handle_authentication
 def initialize_session_state():
     """Initialize all session state variables"""
     if 'db' not in st.session_state:
-        st.session_state.db = JSONDatabase()
+        st.session_state.db = get_database()
     
     if 'plaid' not in st.session_state:
         st.session_state.plaid = PlaidService()
