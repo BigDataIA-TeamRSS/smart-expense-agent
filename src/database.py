@@ -145,27 +145,33 @@ class JSONDatabase:
     # ========== Transaction Operations ==========
     
     def save_transactions(self, user_id: str, account_id: str, transactions: List[Dict]):
-        """Save transactions for a specific account"""
+        """Save transactions for a specific account with deduplication"""
+        from src.services.transaction_deduplicator import get_deduplicator
+        
         all_transactions = self._read_file(Config.TRANSACTIONS_FILE)
         
         key = f"{user_id}_{account_id}"
         if key not in all_transactions:
             all_transactions[key] = []
         
-        # Add new transactions (avoid duplicates based on transaction_id)
-        existing_ids = {t.get("transaction_id") for t in all_transactions[key]}
+        # Get all existing transactions for this user (across all accounts) for deduplication
+        existing_user_transactions = self.get_all_user_transactions(user_id)
         
-        new_transactions = []
-        for txn in transactions:
-            if txn.get("transaction_id") not in existing_ids:
-                txn["saved_at"] = datetime.now().isoformat()
-                new_transactions.append(txn)
-                all_transactions[key].append(txn)
+        # Use deduplicator to find unique transactions
+        deduplicator = get_deduplicator()
+        result = deduplicator.deduplicate_transactions(transactions, existing_user_transactions)
         
-        if new_transactions:
+        unique_new = result["unique_new"]
+        
+        # Add unique transactions with timestamp
+        for txn in unique_new:
+            txn["saved_at"] = datetime.now().isoformat()
+            all_transactions[key].append(txn)
+        
+        if unique_new:
             self._write_file(Config.TRANSACTIONS_FILE, all_transactions)
         
-        return len(new_transactions)
+        return len(unique_new)
     
     def get_transactions(self, user_id: str, account_id: str = None) -> List[Dict]:
         """Get transactions for a user or specific account"""
