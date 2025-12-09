@@ -1,0 +1,72 @@
+# ============================================
+# mcp_toolbox/tools.yaml
+# MCP Toolbox with Cloud SQL + Environment Variables
+# ============================================
+
+
+# Cloud SQL Connection using environment variables
+sources:
+  expense-db:
+    kind: cloud-sql-postgres
+    project: smart-budget-assistant-479802
+    region: us-central1
+    instance: smart-expense-db
+    database: smart_expense_db
+    user: postgres
+    password: Postgres@1234
+
+# ==========================================
+# Tool Definitions
+# ==========================================
+
+tools:
+  get_recent_transactions:
+    kind: postgres-sql
+    source: expense-db
+    description: |
+      Get recent transactions for a user. Returns the most recent transactions 
+      with amount, date, merchant name, and category information.
+    parameters:
+      - name: user_id
+        type: string
+        description: The user's UUID (required)
+      - name: limit
+        type: integer
+        description: Maximum number of transactions to return (default 10, max 100)
+    statement: |
+      SELECT 
+        t.date::text as date,
+        t.amount,
+        COALESCE(t.merchant_name, t.name) as merchant,
+        COALESCE(
+          t.personal_finance_category::json->>'primary',
+          t.category::json->>0,
+          'Uncategorized'
+        ) as category,
+        t.name as description
+      FROM transactions t
+      WHERE t.user_id = $1
+      ORDER BY t.date DESC, t.saved_at DESC
+      LIMIT LEAST(COALESCE($2, 10), 100);
+
+  run_sql:
+    kind: postgres-sql
+    source: expense-db
+    description: |
+      Run a single read-only SQL SELECT query on the smart_expense_db database.
+      Use this to:
+        - Inspect schema (information_schema, pg_catalog)
+        - Explore tables and columns
+        - Answer ad-hoc analytical questions
+      IMPORTANT:
+        - Only use SELECT queries (no INSERT/UPDATE/DELETE/DDL).
+        - If you are unsure of the schema, first query information_schema or pg_catalog
+          to discover tables and columns, then issue a second query.
+    statement: |
+      {{.query}}
+    templateParameters:
+      - name: query
+        type: string
+        description: |
+          A complete, single SQL SELECT statement to run against smart_expense_db.
+          It MUST be read-only (no INSERT/UPDATE/DELETE/DDL).

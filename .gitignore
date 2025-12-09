@@ -212,3 +212,4 @@ Final Project*.md
 resources/
 .secret/
 service-account.json
+*.adk/
