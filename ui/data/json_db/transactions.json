@@ -1,0 +1,256 @@
+{
+  "c86d3835-ae76-41c8-a256-bf9f0c62e8d4_pdf_94f7684726b0affd": [
+    {
+      "transaction_id": "pdf_aa5152f9305e",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": -3250.0,
+      "date": "2025-12-09",
+      "name": "PAYROLL DEPOSIT - ACME CORP",
+      "merchant_name": "PAYROLL",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "credit",
+      "source": "pdf_upload",
+      "original_description": "PAYROLL DEPOSIT - ACME CORP",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607910"
+    },
+    {
+      "transaction_id": "pdf_32dc6569464b",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 1850.0,
+      "date": "2025-12-09",
+      "name": "RENT PAYMENT - PROPERTY MGT",
+      "merchant_name": "RENT",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "RENT PAYMENT - PROPERTY MGT",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607916"
+    },
+    {
+      "transaction_id": "pdf_c02c995c293d",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 87.42,
+      "date": "2025-12-10",
+      "name": "WHOLE FOODS MARKET #523",
+      "merchant_name": "WHOLE",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "WHOLE FOODS MARKET #523",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607919"
+    },
+    {
+      "transaction_id": "pdf_a8cc9ec81e4a",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 6.75,
+      "date": "2025-12-10",
+      "name": "STARBUCKS STORE #1245",
+      "merchant_name": "STARBUCKS",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "STARBUCKS STORE #1245",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607921"
+    },
+    {
+      "transaction_id": "pdf_1bf6b5a10460",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 124.99,
+      "date": "2025-12-11",
+      "name": "AMAZON.COM MARKETPLACE",
+      "merchant_name": "AMAZON.COM",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "AMAZON.COM MARKETPLACE",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607923"
+    },
+    {
+      "transaction_id": "pdf_c54bf700f818",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 55.3,
+      "date": "2025-12-11",
+      "name": "SHELL OIL GAS STATION",
+      "merchant_name": "SHELL",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "SHELL OIL GAS STATION",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607925"
+    },
+    {
+      "transaction_id": "pdf_04b64d01f112",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 100.0,
+      "date": "2025-12-12",
+      "name": "ATM WITHDRAWAL",
+      "merchant_name": "ATM",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "ATM WITHDRAWAL",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607927"
+    },
+    {
+      "transaction_id": "pdf_a0a70cc82c30",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 15.99,
+      "date": "2025-12-12",
+      "name": "NETFLIX SUBSCRIPTION",
+      "merchant_name": "NETFLIX",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "NETFLIX SUBSCRIPTION",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": true,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607928"
+    },
+    {
+      "transaction_id": "pdf_3f6c7d7d4958",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 63.27,
+      "date": "2025-12-13",
+      "name": "TARGET STORE #0582",
+      "merchant_name": "TARGET",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "TARGET STORE #0582",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607930"
+    },
+    {
+      "transaction_id": "pdf_e897d51090d6",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": -45.0,
+      "date": "2025-12-13",
+      "name": "VENMO PAYMENT FROM SARAH",
+      "merchant_name": "VENMO",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "credit",
+      "source": "pdf_upload",
+      "original_description": "VENMO PAYMENT FROM SARAH",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607932"
+    },
+    {
+      "transaction_id": "pdf_4eb5914308ab",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 28.5,
+      "date": "2025-12-14",
+      "name": "UBER RIDE",
+      "merchant_name": "UBER",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "UBER RIDE",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607934"
+    },
+    {
+      "transaction_id": "pdf_a428756d9bda",
+      "account_id": "pdf_94f7684726b0affd",
+      "amount": 14.35,
+      "date": "2025-12-14",
+      "name": "CHIPOTLE #2134",
+      "merchant_name": "CHIPOTLE",
+      "category": [
+        "Uncategorized"
+      ],
+      "pending": false,
+      "payment_channel": "other",
+      "transaction_type": "place",
+      "source": "pdf_upload",
+      "original_description": "CHIPOTLE #2134",
+      "reference_number": null,
+      "location": null,
+      "is_recurring": false,
+      "check_number": null,
+      "saved_at": "2025-12-09T17:51:14.607935"
+    }
+  ]
+}

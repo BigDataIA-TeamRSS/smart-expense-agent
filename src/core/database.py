@@ -111,6 +111,123 @@ class PostgreSQLDatabase:
         finally:
             session.close()
     
+    # ========== NEW: User Profile Operations ==========
+    
+    def update_user_profile(self, user_id: str, **profile_data) -> Dict:
+        """Update user profile with optional fields"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                raise ValueError(f"User {user_id} not found")
+            
+            # Update only provided fields
+            for key, value in profile_data.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            
+            user.updated_at = datetime.utcnow()
+            
+            session.commit()
+            session.refresh(user)
+            
+            return user.to_dict()
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def update_user_preferences(self, user_id: str, **preferences) -> Dict:
+        """Update user preferences (alert thresholds, etc.)"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                raise ValueError(f"User {user_id} not found")
+            
+            # Update preference fields
+            for key, value in preferences.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            
+            user.updated_at = datetime.utcnow()
+            
+            session.commit()
+            session.refresh(user)
+            
+            return user.to_dict()
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def change_password(self, user_id: str, new_password: str) -> bool:
+        """Change user password"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                raise ValueError(f"User {user_id} not found")
+            
+            # Hash new password
+            hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
+            user.password_hash = hashed_password
+            user.updated_at = datetime.utcnow()
+            
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def clear_user_data(self, user_id: str) -> bool:
+        """Clear all transactions and accounts for a user (keeps user account)"""
+        session = self._get_session()
+        try:
+            # Delete transactions
+            session.query(Transaction).filter(
+                Transaction.user_id == user_id
+            ).delete()
+            
+            # Delete accounts
+            session.query(Account).filter(
+                Account.user_id == user_id
+            ).delete()
+            
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def delete_user(self, user_id: str) -> bool:
+        """Permanently delete user and all associated data"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                return False
+            
+            # CASCADE will delete all related data (accounts, transactions)
+            session.delete(user)
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
     # ========== Bank Account Operations ==========
     
     def save_bank_account(self, user_id: str, account_data: Dict) -> Dict:
@@ -335,6 +452,123 @@ class PostgreSQLDatabase:
         finally:
             session.close()
     
+    # ========== NEW: Profile Management ==========
+    
+    def update_user_profile(self, user_id: str, **profile_data) -> Dict:
+        """Update user profile with optional fields"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                raise ValueError(f"User {user_id} not found")
+            
+            # Update only provided fields
+            for key, value in profile_data.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            
+            user.updated_at = datetime.utcnow()
+            
+            session.commit()
+            session.refresh(user)
+            
+            return user.to_dict()
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def update_user_preferences(self, user_id: str, **preferences) -> Dict:
+        """Update user preferences (alert thresholds, etc.)"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                raise ValueError(f"User {user_id} not found")
+            
+            # Update preference fields
+            for key, value in preferences.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            
+            user.updated_at = datetime.utcnow()
+            
+            session.commit()
+            session.refresh(user)
+            
+            return user.to_dict()
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def change_password(self, user_id: str, new_password: str) -> bool:
+        """Change user password"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                raise ValueError(f"User {user_id} not found")
+            
+            # Hash new password
+            hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
+            user.password_hash = hashed_password
+            user.updated_at = datetime.utcnow()
+            
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def clear_user_data(self, user_id: str) -> bool:
+        """Clear all transactions and accounts for a user (keeps user account)"""
+        session = self._get_session()
+        try:
+            # Delete transactions
+            session.query(Transaction).filter(
+                Transaction.user_id == user_id
+            ).delete()
+            
+            # Delete accounts
+            session.query(Account).filter(
+                Account.user_id == user_id
+            ).delete()
+            
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    def delete_user(self, user_id: str) -> bool:
+        """Permanently delete user and all associated data"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                return False
+            
+            # CASCADE will delete all related data
+            session.delete(user)
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
     # ========== Utility Operations ==========
     
     def clear_all_data(self):
@@ -417,7 +651,21 @@ class JSONDatabase:
             "username": username,
             "password": hashed_password,
             "email": email,
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            
+            # Optional profile fields (all None by default)
+            "monthly_income": None,
+            "life_stage": None,
+            "dependents": None,
+            "location": None,
+            
+            # Preferences
+            "budget_alert_threshold": 1.30,
+            
+            # Profile tracking
+            "profile_completed": False,
+            "profile_completed_at": None
         }
         
         users[username] = user
@@ -450,6 +698,112 @@ class JSONDatabase:
             user.pop("password", None)  # Remove password from response
             return user
         return None
+    
+    # ========== NEW: Profile Management ==========
+    
+    def update_user_profile(self, user_id: str, **profile_data) -> Dict:
+        """Update user profile with optional fields"""
+        users = self._read_file(Config.USERS_FILE)
+        
+        # Find user by ID
+        user_found = None
+        username_key = None
+        
+        for username, user in users.items():
+            if user.get('id') == user_id:
+                user_found = user
+                username_key = username
+                break
+        
+        if not user_found:
+            raise ValueError(f"User {user_id} not found")
+        
+        # Update profile fields
+        for key, value in profile_data.items():
+            user_found[key] = value
+        
+        user_found['updated_at'] = datetime.now().isoformat()
+        
+        # Save back to file
+        users[username_key] = user_found
+        self._write_file(Config.USERS_FILE, users)
+        
+        # Return safe user (without password)
+        safe_user = {k: v for k, v in user_found.items() if k != "password"}
+        return safe_user
+    
+    def update_user_preferences(self, user_id: str, **preferences) -> Dict:
+        """Update user preferences"""
+        return self.update_user_profile(user_id, **preferences)
+    
+    def change_password(self, user_id: str, new_password: str) -> bool:
+        """Change user password"""
+        users = self._read_file(Config.USERS_FILE)
+        
+        # Find user
+        user_found = None
+        username_key = None
+        
+        for username, user in users.items():
+            if user.get('id') == user_id:
+                user_found = user
+                username_key = username
+                break
+        
+        if not user_found:
+            raise ValueError(f"User {user_id} not found")
+        
+        # Update password
+        hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
+        user_found['password'] = hashed_password
+        user_found['updated_at'] = datetime.now().isoformat()
+        
+        users[username_key] = user_found
+        self._write_file(Config.USERS_FILE, users)
+        
+        return True
+    
+    def clear_user_data(self, user_id: str) -> bool:
+        """Clear all transactions and accounts for a user"""
+        # Clear accounts
+        accounts = self._read_file(Config.ACCOUNTS_FILE)
+        if user_id in accounts:
+            accounts[user_id] = []
+            self._write_file(Config.ACCOUNTS_FILE, accounts)
+        
+        # Clear transactions
+        all_transactions = self._read_file(Config.TRANSACTIONS_FILE)
+        keys_to_delete = [key for key in all_transactions if key.startswith(f"{user_id}_")]
+        
+        for key in keys_to_delete:
+            del all_transactions[key]
+        
+        self._write_file(Config.TRANSACTIONS_FILE, all_transactions)
+        
+        return True
+    
+    def delete_user(self, user_id: str) -> bool:
+        """Permanently delete user and all data"""
+        users = self._read_file(Config.USERS_FILE)
+        
+        # Find user
+        username_to_delete = None
+        for username, user in users.items():
+            if user.get('id') == user_id:
+                username_to_delete = username
+                break
+        
+        if not username_to_delete:
+            return False
+        
+        # Delete user
+        del users[username_to_delete]
+        self._write_file(Config.USERS_FILE, users)
+        
+        # Delete all associated data
+        self.clear_user_data(user_id)
+        
+        return True
     
     # ========== Bank Account Operations ==========
     

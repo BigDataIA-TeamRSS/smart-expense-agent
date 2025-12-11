@@ -3,7 +3,7 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-env_path=Path(__file__).parent.parent/'.env'
+env_path=Path(__file__).parent.parent.parent/'.env'
 print(env_path)
 load_dotenv(env_path,override=True)
 print(os.getenv("GEMINI_API_KEY"))
@@ -23,13 +23,13 @@ class Config:
     
     # Database Configuration
     # Set USE_POSTGRESQL=true to use PostgreSQL, otherwise uses JSON files
-    USE_POSTGRESQL = os.getenv("USE_POSTGRESQL", "true").lower() == "true"
+    USE_POSTGRESQL = os.getenv("USE_POSTGRESQL", "false").lower() == "true"
     
     # PostgreSQL / Cloud SQL Configuration
     # For local development: postgresql://user:password@localhost:5432/dbname
     # For Cloud SQL: Leave connection_string empty and set use_cloud_sql=True
     DB_CONNECTION_STRING = os.getenv("DB_CONNECTION_STRING", "")
-    USE_CLOUD_SQL = os.getenv("USE_CLOUD_SQL", "true").lower() == "true"
+    USE_CLOUD_SQL = os.getenv("USE_CLOUD_SQL", "false").lower() == "true"
     CLOUD_SQL_CONNECTION_NAME = os.getenv("CLOUD_SQL_CONNECTION_NAME", "")  # project:region:instance
     DB_USER = os.getenv("DB_USER", "postgres")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "")
