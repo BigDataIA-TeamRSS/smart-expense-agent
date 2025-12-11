@@ -3,7 +3,11 @@ import sys
 from pathlib import Path
 
 # Add the project root to Python path so we can import from src/
-project_root = Path(__file__).parent.parent
+# project_root = Path(__file__).parent.parent
+from views.ai_agents import show_ai_agents  # ADD THIS LINE
+
+# Add the project root to Python path so we can import from src/
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import streamlit as st
@@ -14,6 +18,7 @@ from src.integrations.plaid_service import PlaidService
 # Import page modules
 from views import dashboard, connect_bank, accounts, transactions, analytics
 from views.statement_upload import show_statement_upload  # NEW
+from views.settings import show_settings 
 from src.core.auth import handle_authentication
 
 def initialize_session_state():
@@ -60,7 +65,9 @@ def main():
         "📄 Upload Statements",  # NEW TAB
         "💳 Accounts", 
         "💸 Transactions", 
-        "📈 Analytics"
+        "📈 Analytics",
+        "🤖 AI Agents",
+        "⚙️ Settings"  # NEW
     ])
     
     with tabs[0]:
@@ -84,6 +91,16 @@ def main():
     
     with tabs[5]:
         analytics.show_analytics(st.session_state.db, st.session_state.current_user)
+
+    with tabs[6]:
+        show_ai_agents(st.session_state.db, st.session_state.current_user)  
+
+    # Add settings tab handler
+    with tabs[7]:  # 7th tab (index 6)
+       show_settings(
+            st.session_state.db,
+            st.session_state.current_user
+        )
     
     # Footer
     show_data_storage_info()

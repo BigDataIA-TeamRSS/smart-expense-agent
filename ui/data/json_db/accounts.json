@@ -1,0 +1,21 @@
+{
+  "c86d3835-ae76-41c8-a256-bf9f0c62e8d4": [
+    {
+      "account_id": "pdf_94f7684726b0affd",
+      "name": "Unknown Bank Checking - 1234",
+      "institution_name": "Unknown Bank",
+      "type": "checking",
+      "subtype": "pdf_upload",
+      "mask": "1234",
+      "source": "pdf_upload",
+      "current_balance": 6368.93,
+      "available_balance": 6368.93,
+      "statement_period": {
+        "start": "2025-12-08",
+        "end": "2025-12-14"
+      },
+      "id": "266e033e-af82-4c54-ae95-b429965eb3da",
+      "created_at": "2025-12-09T17:51:14.599558"
+    }
+  ]
+}

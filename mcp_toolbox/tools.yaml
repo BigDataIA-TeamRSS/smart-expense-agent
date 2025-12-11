@@ -1,10 +1,3 @@
-# ============================================
-# mcp_toolbox/tools.yaml
-# MCP Toolbox with Cloud SQL + Environment Variables
-# ============================================
-
-
-# Cloud SQL Connection using environment variables
 sources:
   expense-db:
     kind: cloud-sql-postgres
@@ -15,58 +8,618 @@ sources:
     user: postgres
     password: Postgres@1234
 
-# ==========================================
-# Tool Definitions
-# ==========================================
-
 tools:
-  get_recent_transactions:
+  
+  fetch-unprocessed-transactions:
     kind: postgres-sql
     source: expense-db
-    description: |
-      Get recent transactions for a user. Returns the most recent transactions 
-      with amount, date, merchant name, and category information.
+    description: Get transactions that have not been processed by AI yet for a specific user
     parameters:
       - name: user_id
         type: string
-        description: The user's UUID (required)
-      - name: limit
-        type: integer
-        description: Maximum number of transactions to return (default 10, max 100)
+        description: The user ID to fetch transactions for
     statement: |
       SELECT 
-        t.date::text as date,
+        t.transaction_id,
+        t.user_id,
         t.amount,
-        COALESCE(t.merchant_name, t.name) as merchant,
-        COALESCE(
-          t.personal_finance_category::json->>'primary',
-          t.category::json->>0,
-          'Uncategorized'
-        ) as category,
-        t.name as description
+        t.date::text,
+        t.name,
+        t.merchant_name,
+        t.category,
+        t.personal_finance_category,
+        t.payment_channel,
+        t.transaction_type
       FROM transactions t
+      LEFT JOIN processed_transactions pt ON t.transaction_id = pt.transaction_id
       WHERE t.user_id = $1
-      ORDER BY t.date DESC, t.saved_at DESC
-      LIMIT LEAST(COALESCE($2, 10), 100);
-
-  run_sql:
+        AND pt.id IS NULL
+      ORDER BY t.date DESC;
+  
+  get-user-transactions:
     kind: postgres-sql
     source: expense-db
-    description: |
-      Run a single read-only SQL SELECT query on the smart_expense_db database.
-      Use this to:
-        - Inspect schema (information_schema, pg_catalog)
-        - Explore tables and columns
-        - Answer ad-hoc analytical questions
-      IMPORTANT:
-        - Only use SELECT queries (no INSERT/UPDATE/DELETE/DDL).
-        - If you are unsure of the schema, first query information_schema or pg_catalog
-          to discover tables and columns, then issue a second query.
-    statement: |
-      {{.query}}
-    templateParameters:
-      - name: query
+    description: Get all transactions for a user within a specific date range
+    parameters:
+      - name: user_id
         type: string
-        description: |
-          A complete, single SQL SELECT statement to run against smart_expense_db.
-          It MUST be read-only (no INSERT/UPDATE/DELETE/DDL).
+        description: The user ID
+      - name: start_date
+        type: string
+        description: Start date in YYYY-MM-DD format
+      - name: end_date
+        type: string
+        description: End date in YYYY-MM-DD format
+    statement: |
+      SELECT 
+        transaction_id,
+        user_id,
+        amount,
+        date::text,
+        merchant_name,
+        name,
+        category,
+        personal_finance_category
+      FROM transactions
+      WHERE user_id = $1
+        AND date BETWEEN $2::DATE AND $3::DATE
+      ORDER BY date DESC;
+  
+  insert-processed-transaction:
+    kind: postgres-sql
+    source: expense-db
+    description: Save AI-enhanced transaction data with bill detection, subscription confidence, and anomaly details
+    parameters:
+      - name: transaction_id
+        type: string
+        description: The transaction ID
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: category_ai
+        type: string
+        description: AI-assigned category
+      - name: merchant_standardized
+        type: string
+        description: Standardized merchant name
+      - name: is_subscription
+        type: boolean
+        description: Whether this is a subscription transaction
+      - name: subscription_confidence
+        type: string
+        description: Subscription detection confidence score (0.00-1.00), NULL if not a subscription
+      - name: is_anomaly
+        type: boolean
+        description: Whether this is an anomalous transaction
+      - name: anomaly_score
+        type: string
+        description: Anomaly confidence score between 0.00 and 1.00
+      - name: anomaly_reason
+        type: string
+        description: Explanation of why flagged as anomaly (optional)
+      - name: is_bill
+        type: boolean
+        description: Whether this is a recurring monthly bill (rent, utilities, insurance, etc.)
+      - name: bill_cycle_day
+        type: integer
+        description: Day of month this bill typically occurs (1-31), NULL if not a bill
+      - name: tags
+        type: string
+        description: JSON array of custom tags (optional)
+      - name: notes
+        type: string
+        description: Additional notes about the transaction (optional)
+    statement: |
+      INSERT INTO processed_transactions (
+        transaction_id, user_id, category_ai, merchant_standardized,
+        is_subscription, subscription_confidence,
+        is_anomaly, anomaly_score, anomaly_reason,
+        is_bill, bill_cycle_day,
+        tags, notes
+      )
+      VALUES (
+        $1, $2, $3, $4, 
+        $5, NULLIF($6, '')::NUMERIC,
+        $7, $8::NUMERIC, NULLIF($9, ''),
+        $10, $11,
+        CASE WHEN NULLIF($12, '') IS NOT NULL THEN $12::TEXT[] ELSE NULL END,
+        NULLIF($13, '')
+      )
+      ON CONFLICT (transaction_id) DO UPDATE SET
+        category_ai = EXCLUDED.category_ai,
+        merchant_standardized = EXCLUDED.merchant_standardized,
+        is_subscription = EXCLUDED.is_subscription,
+        subscription_confidence = EXCLUDED.subscription_confidence,
+        is_anomaly = EXCLUDED.is_anomaly,
+        anomaly_score = EXCLUDED.anomaly_score,
+        anomaly_reason = EXCLUDED.anomaly_reason,
+        is_bill = EXCLUDED.is_bill,
+        bill_cycle_day = EXCLUDED.bill_cycle_day,
+        tags = EXCLUDED.tags,
+        notes = EXCLUDED.notes,
+        processed_at = CURRENT_TIMESTAMP;
+  
+  upsert-subscription:
+    kind: postgres-sql
+    source: expense-db
+    description: Create or update a detected subscription
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: merchant_name
+        type: string
+        description: Original merchant name
+      - name: merchant_standardized
+        type: string
+        description: Cleaned merchant name
+      - name: amount
+        type: string
+        description: Subscription amount as decimal string
+      - name: frequency
+        type: string
+        description: Billing frequency (monthly, yearly, quarterly)
+      - name: start_date
+        type: string
+        description: First occurrence date YYYY-MM-DD
+      - name: category
+        type: string
+        description: Subscription category
+    statement: |
+      INSERT INTO subscriptions (
+        user_id, merchant_name, merchant_standardized, amount, 
+        frequency, start_date, category, status, occurrence_count
+      )
+      VALUES ($1, $2, $3, $4::NUMERIC, $5, $6::DATE, $7, 'active', 1)
+      ON CONFLICT (user_id, merchant_standardized, frequency)
+      DO UPDATE SET
+        amount = EXCLUDED.amount,
+        last_charge_date = CURRENT_DATE,
+        occurrence_count = subscriptions.occurrence_count + 1,
+        status = 'active',
+        updated_at = CURRENT_TIMESTAMP;
+  
+  get-user-subscriptions:
+    kind: postgres-sql
+    source: expense-db
+    description: Get all subscriptions for a specific user
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      SELECT 
+        id,
+        merchant_standardized,
+        amount,
+        frequency,
+        status,
+        last_charge_date::text,
+        category,
+        usage_score,
+        occurrence_count
+      FROM subscriptions
+      WHERE user_id = $1
+      ORDER BY amount DESC;
+  
+  insert-spending-pattern:
+    kind: postgres-sql
+    source: expense-db
+    description: Save monthly spending pattern for a category
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: category
+        type: string
+        description: Spending category
+      - name: year
+        type: integer
+        description: Year
+      - name: month
+        type: integer
+        description: Month (1-12)
+      - name: period_start
+        type: string
+        description: Period start date YYYY-MM-DD
+      - name: period_end
+        type: string
+        description: Period end date YYYY-MM-DD
+      - name: total_amount
+        type: string
+        description: Total amount spent in category for period
+      - name: transaction_count
+        type: integer
+        description: Number of transactions in period
+      - name: avg_amount
+        type: string
+        description: Average transaction amount
+    statement: |
+      INSERT INTO spending_patterns (
+        user_id, category, period_type, year, month,
+        period_start, period_end, total_amount, transaction_count, avg_transaction_amount
+      )
+      VALUES ($1, $2, 'monthly', $3, $4, $5::DATE, $6::DATE, $7::NUMERIC, $8, $9::NUMERIC)
+      ON CONFLICT (user_id, category, period_type, year, month, week)
+      DO UPDATE SET
+        total_amount = EXCLUDED.total_amount,
+        transaction_count = EXCLUDED.transaction_count,
+        avg_transaction_amount = EXCLUDED.avg_transaction_amount;
+  
+  get-category-history:
+    kind: postgres-sql
+    source: expense-db
+    description: Get historical spending data for a category to calculate baseline
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: category
+        type: string
+        description: The spending category
+      - name: months
+        type: integer
+        description: Number of months of history to retrieve
+    statement: |
+      SELECT 
+        year,
+        month,
+        total_amount,
+        transaction_count
+      FROM spending_patterns
+      WHERE user_id = $1
+        AND category = $2
+        AND period_type = 'monthly'
+      ORDER BY year DESC, month DESC
+      LIMIT $3;
+  
+  get-current-month-spending:
+    kind: postgres-sql
+    source: expense-db
+    description: Get current month spending grouped by category for budget analysis
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      SELECT 
+        category,
+        total_amount,
+        transaction_count
+      FROM spending_patterns
+      WHERE user_id = $1
+        AND year = EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER
+        AND month = EXTRACT(MONTH FROM CURRENT_DATE)::INTEGER
+        AND period_type = 'monthly';
+  
+  get-user-categories:
+    kind: postgres-sql
+    source: expense-db
+    description: Get all unique categories a user has spending in
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      SELECT DISTINCT category
+      FROM spending_patterns
+      WHERE user_id = $1
+      ORDER BY category;
+  
+  insert-budget-analysis:
+    kind: postgres-sql
+    source: expense-db
+    description: Save budget health analysis results to database
+    parameters:
+      - name: user_id
+        type: string
+        description: User ID
+      - name: category
+        type: string
+        description: Spending category
+      - name: year
+        type: integer
+        description: Analysis year
+      - name: month
+        type: integer
+        description: Analysis month
+      - name: current_spend
+        type: string
+        description: Current month spending amount
+      - name: baseline
+        type: string
+        description: Historical baseline amount
+      - name: status
+        type: string
+        description: Budget status (healthy, warning, critical, over_budget)
+      - name: utilization_percent
+        type: string
+        description: Utilization percentage
+      - name: alert_message
+        type: string
+        description: Alert message for user
+      - name: alert_priority
+        type: string
+        description: Alert priority level
+    statement: |
+      INSERT INTO budget_analysis (
+        user_id, category, year, month, current_spend, baseline,
+        status, utilization_percent, alert_message, alert_priority
+      )
+      VALUES ($1, $2, $3, $4, $5::NUMERIC, $6::NUMERIC, $7, $8::NUMERIC, NULLIF($9, ''), $10)
+      ON CONFLICT (user_id, category, year, month)
+      DO UPDATE SET
+        current_spend = EXCLUDED.current_spend,
+        baseline = EXCLUDED.baseline,
+        status = EXCLUDED.status,
+        utilization_percent = EXCLUDED.utilization_percent,
+        alert_message = EXCLUDED.alert_message,
+        alert_priority = EXCLUDED.alert_priority;
+  
+  insert-recommendation:
+    kind: postgres-sql
+    source: expense-db
+    description: Save a financial recommendation from Agent 2 analysis
+    parameters:
+      - name: user_id
+        type: string
+        description: User ID
+      - name: tool_name
+        type: string
+        description: Which tool generated this (savings_finder, subscription_optimizer, etc)
+      - name: recommendation_type
+        type: string
+        description: Type of recommendation
+      - name: title
+        type: string
+        description: Recommendation title
+      - name: description
+        type: string
+        description: Detailed description
+      - name: potential_savings
+        type: string
+        description: Monthly savings potential
+      - name: annual_savings
+        type: string
+        description: Annual savings potential
+      - name: priority
+        type: integer
+        description: Priority (1-5, 1 is highest)
+      - name: urgency
+        type: string
+        description: Urgency level
+      - name: related_category
+        type: string
+        description: Related category (optional)
+      - name: related_merchant
+        type: string
+        description: Related merchant (optional)
+    statement: |
+      INSERT INTO recommendations (
+        user_id, tool_name, recommendation_type, title, description,
+        potential_savings, annual_savings, priority, urgency,
+        related_category, related_merchant, status
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, 
+        $6::NUMERIC, $7::NUMERIC, $8, $9,
+        NULLIF($10, ''), NULLIF($11, ''), 'active'
+      );
+  
+  insert-trend-prediction:
+    kind: postgres-sql
+    source: expense-db
+    description: Save spending trend prediction for next month
+    parameters:
+      - name: user_id
+        type: string
+        description: User ID
+      - name: category
+        type: string
+        description: Spending category
+      - name: target_year
+        type: integer
+        description: Target year for prediction
+      - name: target_month
+        type: integer
+        description: Target month for prediction (1-12)
+      - name: predicted_amount
+        type: string
+        description: Predicted spending amount
+      - name: confidence_score
+        type: string
+        description: Prediction confidence (0-1)
+      - name: based_on_months
+        type: integer
+        description: Number of months of historical data used
+      - name: historical_median
+        type: string
+        description: Historical median baseline
+    statement: |
+      INSERT INTO trend_predictions (
+        user_id, category, target_year, target_month,
+        predicted_amount, confidence_score, based_on_months, historical_median
+      )
+      VALUES ($1, $2, $3, $4, $5::NUMERIC, $6::NUMERIC, $7, $8::NUMERIC)
+      ON CONFLICT (user_id, category, target_year, target_month)
+      DO UPDATE SET
+        predicted_amount = EXCLUDED.predicted_amount,
+        confidence_score = EXCLUDED.confidence_score,
+        based_on_months = EXCLUDED.based_on_months,
+        historical_median = EXCLUDED.historical_median;
+  
+  get-subscription-details:
+    kind: postgres-sql
+    source: expense-db
+    description: Get detailed subscription information
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      SELECT merchant_standardized, amount, frequency, category, occurrence_count,
+             (amount * CASE WHEN frequency = 'monthly' THEN 12 WHEN frequency = 'yearly' THEN 1 ELSE 12 END) as annual_cost
+      FROM subscriptions WHERE user_id = $1 AND status = 'active' ORDER BY amount DESC;
+  
+  get-top-merchants:
+    kind: postgres-sql
+    source: expense-db
+    description: Get top spending merchants
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: limit
+        type: integer
+        description: Number of merchants to return
+    statement: |
+      SELECT pt.merchant_standardized, pt.category_ai, COUNT(*) as transaction_count,
+             SUM(ABS(t.amount)) as total_spent
+      FROM processed_transactions pt
+      JOIN transactions t ON pt.transaction_id = t.transaction_id
+      WHERE pt.user_id = $1 AND t.amount < 0
+      GROUP BY pt.merchant_standardized, pt.category_ai
+      ORDER BY total_spent DESC LIMIT $2;
+  
+  get-category-breakdown:
+    kind: postgres-sql
+    source: expense-db
+    description: Get category breakdown
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      SELECT category, total_amount, transaction_count
+      FROM spending_patterns
+      WHERE user_id = $1
+        AND year = EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER
+        AND month = EXTRACT(MONTH FROM CURRENT_DATE)::INTEGER
+      ORDER BY total_amount DESC;
+  
+  get-upcoming-bills:
+    kind: postgres-sql
+    source: expense-db
+    description: Get upcoming bills
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      SELECT DISTINCT merchant_standardized, category_ai, bill_cycle_day, AVG(t.amount) as typical_amount
+      FROM processed_transactions pt
+      JOIN transactions t ON pt.transaction_id = t.transaction_id
+      WHERE pt.user_id = $1 AND pt.is_bill = true AND bill_cycle_day > 0
+      GROUP BY merchant_standardized, category_ai, bill_cycle_day
+      ORDER BY bill_cycle_day LIMIT 10;
+  
+  get-anomalous-spending:
+    kind: postgres-sql
+    source: expense-db
+    description: Get unusual transactions
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: limit
+        type: integer
+        description: Number of anomalies to return
+    statement: |
+      SELECT t.date::text, pt.merchant_standardized, pt.category_ai, t.amount, pt.anomaly_score
+      FROM processed_transactions pt
+      JOIN transactions t ON pt.transaction_id = t.transaction_id
+      WHERE pt.user_id = $1 AND pt.is_anomaly = true
+      ORDER BY pt.anomaly_score DESC LIMIT $2;
+  
+  compare-month-spending:
+    kind: postgres-sql
+    source: expense-db
+    description: Compare months
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+    statement: |
+      WITH current AS (SELECT category, total_amount FROM spending_patterns 
+                       WHERE user_id = $1 AND year = EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER 
+                       AND month = EXTRACT(MONTH FROM CURRENT_DATE)::INTEGER),
+           previous AS (SELECT category, total_amount FROM spending_patterns 
+                        WHERE user_id = $1 AND year = EXTRACT(YEAR FROM CURRENT_DATE - INTERVAL '1 month')::INTEGER 
+                        AND month = EXTRACT(MONTH FROM CURRENT_DATE - INTERVAL '1 month')::INTEGER)
+      SELECT COALESCE(c.category, p.category) as category,
+             COALESCE(c.total_amount, 0) as current_month,
+             COALESCE(p.total_amount, 0) as previous_month,
+             COALESCE(c.total_amount, 0) - COALESCE(p.total_amount, 0) as difference
+      FROM current c FULL OUTER JOIN previous p ON c.category = p.category;
+  
+  save-conversation:
+    kind: postgres-sql
+    source: expense-db
+    description: Save conversation
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: session_id
+        type: string
+        description: The session UUID
+      - name: role
+        type: string
+        description: Message role (user or assistant)
+      - name: message
+        type: string
+        description: The message text
+      - name: intent
+        type: string
+        description: Detected intent
+      - name: tools_called
+        type: string
+        description: Tools called (JSON array)
+      - name: tool_results
+        type: string
+        description: Tool results (JSON object)
+    statement: |
+      INSERT INTO conversation_history (user_id, session_id, role, message, intent, tools_called, tool_results)
+      VALUES ($1, $2::UUID, $3, $4, NULLIF($5, ''),
+              CASE WHEN NULLIF($6, '') IS NOT NULL THEN $6::TEXT[] ELSE NULL END,
+              CASE WHEN NULLIF($7, '') IS NOT NULL THEN $7::JSONB ELSE NULL END);
+  
+  get-similar-queries:
+    kind: postgres-sql
+    source: expense-db
+    description: Find similar queries
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: intent
+        type: string
+        description: The intent to search for
+      - name: limit
+        type: integer
+        description: Number of results
+    statement: |
+      SELECT ch.message as user_message, ch.intent, ch.created_at::text,
+             (SELECT message FROM conversation_history 
+              WHERE session_id = ch.session_id AND role = 'assistant' 
+              AND created_at > ch.created_at ORDER BY created_at LIMIT 1) as assistant_response
+      FROM conversation_history ch
+      WHERE ch.user_id = $1 AND ch.role = 'user' AND ch.intent = $2
+      ORDER BY ch.created_at DESC LIMIT $3;
+  
+  get-frequent-questions:
+    kind: postgres-sql
+    source: expense-db
+    description: Get frequent questions
+    parameters:
+      - name: user_id
+        type: string
+        description: The user ID
+      - name: limit
+        type: integer
+        description: Number of questions to return
+    statement: |
+      SELECT intent, COUNT(*) as frequency, MAX(message) as example_question
+      FROM conversation_history
+      WHERE user_id = $1 AND role = 'user' AND intent IS NOT NULL
+      GROUP BY intent ORDER BY frequency DESC LIMIT $2;

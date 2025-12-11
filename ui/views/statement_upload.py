@@ -959,8 +959,18 @@ from typing import Dict, List
 from datetime import datetime
 
 # Import config - matching YOUR project structure
-from src.config import Config
+# from src.config import Config
 
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+config_path=Path(__file__).parent.parent.parent/'src'/'config'
+print(config_path)
+
+# Import config - matching YOUR project structure
+# from src.config import Config
+from src.config import Config
+# print(Config)
 # NOTE: We do NOT import get_db or save_transactions
 # The db object is passed as a parameter to show_statement_upload()
 
