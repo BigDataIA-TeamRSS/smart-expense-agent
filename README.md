@@ -27,3 +27,20 @@ flowchart LR
   F --> C
   F --> G[Streamlit Frontend]
   G --> F
+
+
+  Evaluations and Project Journey Documented :
+  https://docs.google.com/document/d/1KmrxmxGym_lHdfGtqH5DG3xLF2kJER-gWYvkwhIMetw/edit?usp=sharing
+
+  Contributions :
+# Team Contributions
+
+| Member | Contribution | Percentage |
+|--------|--------------|------------|
+| Somil Shah | Data Collecting -  Plaid , PDF Parsing , database connection , MCP toolbox setup, Streamlit , Google ADK-  Agent2 | 33.3% |
+| Riya Kapadnis | streamlit , Database Schema Design , Deploying Agents to cloud , Cloud Deployement | 33.3% |
+| Siddhi Dhamale | Data Preparation , Streamlit UI, Google ADK- Agent , Data processing pipeline , Cloud Deployement, FastAPI , Orchestration | 33.3% |
+
+## 📋 Attestation
+
+WE ATTEST THAT WE HAVEN'T USED ANY OTHER STUDENTS' WORK IN OUR ASSIGNMENT AND ABIDE BY THE POLICIES LISTED IN THE STUDENT HANDBOOK.
