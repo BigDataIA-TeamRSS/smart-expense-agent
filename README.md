@@ -28,11 +28,13 @@ flowchart LR
   F --> G[Streamlit Frontend]
   G --> F
 
+---
 
-  Evaluations and Project Journey Documented :
-  https://docs.google.com/document/d/1KmrxmxGym_lHdfGtqH5DG3xLF2kJER-gWYvkwhIMetw/edit?usp=sharing
+## Evaluations and Project Journey Documented :
+# https://docs.google.com/document/d/1KmrxmxGym_lHdfGtqH5DG3xLF2kJER-gWYvkwhIMetw/edit?usp=sharing
 
-  Contributions :
+---
+## Contributions :
 # Team Contributions
 
 | Member | Contribution | Percentage |
