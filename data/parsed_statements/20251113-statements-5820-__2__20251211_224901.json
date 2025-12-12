@@ -1,0 +1,120 @@
+{
+  "account_info": {
+    "account_holder": "SOMIL SHAH",
+    "account_number_last4": "5820",
+    "account_number_masked": "XXXX-XXXX-5820",
+    "account_type": "checking",
+    "bank_name": "Chase",
+    "bank_type": "chase_checking",
+    "statement_start_date": "2025-10-11",
+    "statement_end_date": "2025-11-13",
+    "routing_number": null
+  },
+  "summary": {
+    "beginning_balance": 1336.39,
+    "ending_balance": 1223.3,
+    "total_deposits": 754.83,
+    "total_withdrawals": 867.92
+  },
+  "transactions": [
+    {
+      "transaction_id": "pdf_cdef548001b3",
+      "date": "2025-10-16",
+      "description": "Northeastern Uni Payments PPD ID: [PHONE_4]",
+      "original_description": "Northeastern Uni Payments PPD ID: [PHONE_4]",
+      "amount": 353.58,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 1689.97,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_47969725470c",
+      "date": "2025-10-17",
+      "description": "[ADDRESS_4] Ending IN 2551",
+      "original_description": "10/[ADDRESS_4] Ending IN 2551",
+      "amount": 29.73,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 1660.24,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_97349cc8dbd7",
+      "date": "2025-10-17",
+      "description": "[ADDRESS_3] Gsbank Payment [SSN_2] Web ID: [PHONE_5]",
+      "original_description": "10/[ADDRESS_3] Gsbank Payment [SSN_2] Web ID: [PHONE_5]",
+      "amount": 758.19,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 902.05,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_b0d3ae5efb04",
+      "date": "2025-10-24",
+      "description": "Northeastern Uni Payroll PPD ID: [PHONE_6]",
+      "original_description": "Northeastern Uni Payroll PPD ID: [PHONE_6]",
+      "amount": 393.75,
+      "transaction_type": "credit",
+      "category": null,
+      "balance_after": 1295.8,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_a4c1718ca9b4",
+      "date": "2025-11-10",
+      "description": "Zelle Payment To Charmy 26897099082",
+      "original_description": "Zelle Payment To Charmy 26897099082",
+      "amount": 80.0,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 1215.8,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_13cd2d857332",
+      "date": "2025-11-12",
+      "description": "Zelle Payment From Sandeepsuresh Kumar Svb0Jj8Zg9Xc",
+      "original_description": "Zelle Payment From Sandeepsuresh Kumar Svb0Jj8Zg9Xc",
+      "amount": 7.5,
+      "transaction_type": "credit",
+      "category": null,
+      "balance_after": 1223.3,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    }
+  ],
+  "parsing_confidence": 0.9,
+  "parsing_notes": [
+    "PII was sanitized before LLM processing"
+  ],
+  "source_filename": "20251113-statements-5820- (2).pdf",
+  "parsed_at": "2025-12-11T22:49:01.060442",
+  "raw_text_length": 4285,
+  "page_count": 2,
+  "transaction_count": 6
+}

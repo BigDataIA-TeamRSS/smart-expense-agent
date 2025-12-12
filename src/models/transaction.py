@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, String, Float, DateTime, ForeignKey, JSON, Boolean, Date
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 import uuid
 
@@ -60,6 +61,44 @@ class Transaction(Base):
     # Relationships
     account = relationship("Account", back_populates="transactions")
     
+    # one-to-one relationship to processed transaction
+    processed = relationship(
+        "ProcessedTransaction",
+        back_populates="transaction",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    # Convenience / “overlay” properties
+    @hybrid_property
+    def merchant_display(self):
+        """
+        Prefer AI-standardized merchant if available, else fall back
+        to the original fields.
+        """
+        if self.processed and self.processed.merchant_standardized:
+            return self.processed.merchant_standardized
+        return self.merchant_name or self.name
+
+    @hybrid_property
+    def category_display(self):
+        """
+        Prefer AI category if present; otherwise fall back to Plaid's
+        primary category or raw category list.
+        """
+        if self.processed and self.processed.category_ai:
+            return self.processed.category_ai
+
+        # Example fallbacks – adjust to how you use Plaid categories
+        if self.personal_finance_category and "primary" in self.personal_finance_category:
+            return self.personal_finance_category["primary"]
+
+        if self.category and len(self.category) > 0:
+            return self.category[-1]  # e.g. most specific category
+
+        return None
+
     def to_dict(self):
         """Convert transaction to dictionary"""
         return {
@@ -69,11 +108,18 @@ class Transaction(Base):
             "date": self.date.isoformat() if self.date else None,
             "authorized_date": self.authorized_date.isoformat() if self.authorized_date else None,
             "name": self.name,
-            "merchant_name": self.merchant_name,
+            "merchant_name": self.processed.merchant_standardized if self.processed else self.merchant_name,
+            "merchant_raw": self.merchant_name,
+            "merchant_display": self.merchant_display,
+            "category_display": self.category_display,
+            "is_subscription": self.processed.is_subscription if self.processed else None,
+            "anomaly_score": self.processed.anomaly_score if self.processed else None,
+            "anomaly_reason": self.processed.anomaly_reason if self.processed else None,
             "merchant_entity_id": self.merchant_entity_id,
             "logo_url": self.logo_url,
             "website": self.website,
-            "category": self.category,
+            "category": self.processed.category_ai if self.processed else self.category,
+            "category_raw": self.category,
             "category_id": self.category_id,
             "personal_finance_category": self.personal_finance_category,
             "personal_finance_category_icon_url": self.personal_finance_category_icon_url,
@@ -91,3 +137,4 @@ class Transaction(Base):
             "check_number": self.check_number,
             "saved_at": self.saved_at.isoformat() if self.saved_at else None,
         }
+  

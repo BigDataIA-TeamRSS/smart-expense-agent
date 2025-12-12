@@ -1,9 +1,19 @@
 """User Settings - Profile and Preferences Management"""
 import streamlit as st
 from datetime import datetime
+import sys
+from pathlib import Path
 
-def show_settings(db, current_user):
+# Add ui directory to path for imports
+ui_dir = Path(__file__).parent.parent
+if str(ui_dir) not in sys.path:
+    sys.path.insert(0, str(ui_dir))
+
+from api_client import get_api_client
+
+def show_settings(current_user):
     """Main settings page with profile and preferences"""
+    print(f"[SETTINGS] Loading settings for user: {current_user.get('id')}")
     
     st.header("Settings")
     
@@ -12,18 +22,19 @@ def show_settings(db, current_user):
     
     # Profile Tab
     with tab1:
-        show_profile_tab(db, current_user)
+        show_profile_tab(current_user)
     
     # Preferences Tab
     with tab2:
-        show_preferences_tab(db, current_user)
+        show_preferences_tab(current_user)
     
     # Account Tab
     with tab3:
-        show_account_tab(db, current_user)
+        show_account_tab(current_user)
 
-def show_profile_tab(db, current_user):
+def show_profile_tab(current_user):
     """Profile information and personalization"""
+    print("[SETTINGS] Loading profile tab")
     
     st.subheader("Financial Profile")
     
@@ -140,6 +151,7 @@ def show_profile_tab(db, current_user):
         submitted = st.form_submit_button("Save Profile", use_container_width=True, type="primary")
         
         if submitted:
+            print("[SETTINGS] Profile form submitted")
             try:
                 # Prepare profile data
                 profile_data = {
@@ -147,40 +159,36 @@ def show_profile_tab(db, current_user):
                     'life_stage': life_stage if life_stage != "Not specified" else None,
                     'dependents': dependents if dependents > 0 else None,
                     'location': location if location else None,
-                    'profile_completed': any([
-                        monthly_income > 0,
-                        life_stage != "Not specified",
-                        dependents > 0,
-                        location
-                    ]),
-                    'profile_completed_at': datetime.utcnow().isoformat() if any([
-                        monthly_income > 0,
-                        life_stage != "Not specified",
-                        dependents > 0,
-                        location
-                    ]) else None
                 }
                 
-                # Update database
-                updated_user = db.update_user_profile(
-                    user_id=current_user['id'],
-                    **profile_data
-                )
+                # Update via API
+                import time
+                start_time = time.time()
+                api = get_api_client()
+                print(f"[SETTINGS] Calling API: /api/users/me/profile at {time.time()}")
+                updated_user = api.update_profile(**profile_data)
+                api_time = time.time() - start_time
+                print(f"[SETTINGS] Profile updated successfully in {api_time:.2f}s")
                 
                 # Update session
-                st.session_state.current_user.update(profile_data)
+                st.session_state.current_user.update(updated_user)
                 
                 st.success("Profile updated successfully!")
                 st.balloons()
                 
-                # Refresh page to show changes
-                st.rerun()
+                # Don't rerun - just show success message to avoid reloading all tabs
+                # The profile data is already updated in session state
+                # st.rerun()  # Commented out to avoid slow reload
                 
             except Exception as e:
+                print(f"[SETTINGS] Error updating profile: {str(e)}")
                 st.error(f"Error updating profile: {str(e)}")
+                import traceback
+                st.code(traceback.format_exc())
 
-def show_preferences_tab(db, current_user):
+def show_preferences_tab(current_user):
     """Alert and notification preferences"""
+    print("[SETTINGS] Loading preferences tab")
     
     st.subheader("Alert Preferences")
     
@@ -231,21 +239,25 @@ def show_preferences_tab(db, current_user):
         submitted = st.form_submit_button("Save Preferences", use_container_width=True, type="primary")
         
         if submitted:
+            print(f"[SETTINGS] Preferences form submitted, threshold: {alert_threshold}")
             try:
-                db.update_user_preferences(
-                    user_id=current_user['id'],
-                    budget_alert_threshold=alert_threshold
-                )
+                api = get_api_client()
+                print("[SETTINGS] Calling API: /api/users/me/preferences")
+                updated_user = api.update_preferences(budget_alert_threshold=alert_threshold)
+                print("[SETTINGS] Preferences updated successfully")
                 
                 st.session_state.current_user['budget_alert_threshold'] = alert_threshold
                 
                 st.success("Preferences updated!")
+                # Don't rerun to avoid slow reload
                 
             except Exception as e:
+                print(f"[SETTINGS] Error updating preferences: {str(e)}")
                 st.error(f"Error updating preferences: {str(e)}")
 
-def show_account_tab(db, current_user):
+def show_account_tab(current_user):
     """Account management and security"""
+    print("[SETTINGS] Loading account tab")
     
     st.subheader("Account Information")
     
@@ -279,6 +291,7 @@ def show_account_tab(db, current_user):
         change_pw = st.form_submit_button("Change Password", type="primary")
         
         if change_pw:
+            print("[SETTINGS] Change password form submitted")
             if not all([current_password, new_password, confirm_new]):
                 st.error("Please fill in all fields")
             elif new_password != confirm_new:
@@ -286,16 +299,15 @@ def show_account_tab(db, current_user):
             elif len(new_password) < 6:
                 st.error("Password must be at least 6 characters")
             else:
-                # Verify current password
-                user_check = db.authenticate_user(current_user['username'], current_password)
-                if user_check:
-                    try:
-                        db.change_password(current_user['id'], new_password)
-                        st.success("Password changed successfully!")
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
-                else:
-                    st.error("Current password is incorrect")
+                try:
+                    api = get_api_client()
+                    print("[SETTINGS] Calling API: /api/users/me/password")
+                    api.change_password(current_password, new_password)
+                    print("[SETTINGS] Password changed successfully")
+                    st.success("Password changed successfully!")
+                except Exception as e:
+                    print(f"[SETTINGS] Error changing password: {str(e)}")
+                    st.error(f"Error: {str(e)}")
     
     st.markdown("---")
     
@@ -308,6 +320,7 @@ def show_account_tab(db, current_user):
         st.caption("Removes all transactions and accounts but keeps your account")
         
         if st.button("Clear All Data"):
+            print("[SETTINGS] Clear data button clicked")
             st.session_state.confirm_clear = True
         
         if st.session_state.get('confirm_clear'):
@@ -317,14 +330,22 @@ def show_account_tab(db, current_user):
             with col1:
                 if st.button("Cancel"):
                     st.session_state.confirm_clear = False
-                    st.rerun()
+                    # Don't rerun - just clear the flag, UI will update naturally
+                    # st.rerun()  # Removed - flag is cleared, will update on next render
             
             with col2:
                 if st.button("Yes, Delete All Data", type="primary"):
+                    print("[SETTINGS] Confirmed clear data")
                     try:
-                        db.clear_user_data(current_user['id'])
+                        api = get_api_client()
+                        print("[SETTINGS] Calling API: /api/users/me/data")
+                        api.clear_user_data()
+                        print("[SETTINGS] User data cleared successfully")
                         st.session_state.confirm_clear = False
                         st.success("All data cleared!")
-                        st.rerun()
+                        # Data is cleared on backend, no need to reload entire page
+                        # User can manually refresh if they want to see updated state
+                        # st.rerun()  # Removed - data is cleared, show success message
                     except Exception as e:
+                        print(f"[SETTINGS] Error clearing data: {str(e)}")
                         st.error(f"Error: {str(e)}")

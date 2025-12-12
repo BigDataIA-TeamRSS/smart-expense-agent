@@ -1,44 +1,80 @@
-#uvicorn app.main:app --reload
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from plaid_handler import exchange_public_token, get_transactions
-from datetime import datetime, timedelta
+"""FastAPI application for Smart Expense Analyzer - Cloud Run deployment"""
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Smart Expense Analyzer")
+# Import routers
+from src.app.routers import (
+    auth,
+    accounts,
+    transactions,
+    plaid,
+    statements,
+    analytics,
+    ai_agents
+)
 
-class PlaidExchangeRequest(BaseModel):
-    public_token: str
+# Import exception handlers
+from src.app.exceptions import setup_exception_handlers
 
-@app.post("/api/plaid/exchange")
-async def exchange_token(request: PlaidExchangeRequest):
-    """Exchange public token for access token"""
-    try:
-        access_token, item_id = exchange_public_token(request.public_token)
-        
-        # Store access_token in database (you'll do this later)
-        # For now, just return success
-        
-        return {
-            "status": "success",
-            "item_id": item_id,
-            "message": "Bank connected successfully"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/api/plaid/transactions")
-async def fetch_transactions(access_token: str):
-    """Fetch transactions from Plaid"""
-    try:
-        # Get last 30 days
-        end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        
-        transactions = get_transactions(access_token, start_date, end_date)
-        
-        return {
-            "count": len(transactions),
-            "transactions": transactions
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup/shutdown tasks"""
+    # Startup
+    yield
+    # Shutdown (if needed)
+
+
+# Create FastAPI app
+app = FastAPI(
+    title="Smart Expense Analyzer API",
+    description="Financial analysis API with Plaid integration and AI insights",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS Configuration - Allow Streamlit frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "*").split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Setup exception handlers
+setup_exception_handlers(app)
+
+# Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication & Users"])
+app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
+app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
+app.include_router(plaid.router, prefix="/api/plaid", tags=["Plaid"])
+app.include_router(statements.router, prefix="/api/statements", tags=["Statements"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
+app.include_router(ai_agents.router, prefix="/api/ai", tags=["AI Agents"])
+
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Smart Expense Analyzer API",
+        "version": "1.0.0",
+        "docs": "/docs"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Cloud Run"""
+    return {"status": "healthy"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

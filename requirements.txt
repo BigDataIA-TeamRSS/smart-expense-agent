@@ -1,5 +1,6 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.3
+python-multipart>=0.0.6  # Required for file uploads
 plaid-python>=20.0.0
 streamlit==1.38.0
 requests==2.32.3
@@ -13,3 +14,7 @@ psycopg2-binary>=2.9.9
 cloud-sql-python-connector[pg8000]>=1.11.0  # Works with Python 3.11. Not available for Python 3.13 yet.
 pg8000>=1.31.0
 alembic>=1.13.0
+# Optional: For JWT authentication (can be added later)
+# python-jose[cryptography]>=3.3.0
+# passlib[bcrypt]>=1.7.4
+pydantic[email]>=2.0.0

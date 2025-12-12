@@ -111,6 +111,20 @@ class PostgreSQLDatabase:
         finally:
             session.close()
     
+    def get_user_for_auth(self, username: str) -> Optional[Dict]:
+        """Get user with password hash for authentication purposes"""
+        session = self._get_session()
+        try:
+            user = session.query(User).filter(User.username == username).first()
+            if user:
+                user_dict = user.to_dict()
+                # Include password_hash for auth validation
+                user_dict["password_hash"] = user.password_hash
+                return user_dict
+            return None
+        finally:
+            session.close()
+    
     # ========== NEW: User Profile Operations ==========
     
     def update_user_profile(self, user_id: str, **profile_data) -> Dict:
@@ -294,6 +308,34 @@ class PostgreSQLDatabase:
         try:
             accounts = session.query(Account).filter(Account.user_id == user_id).all()
             return [acc.to_dict() for acc in accounts]
+        finally:
+            session.close()
+    
+    def update_account(self, user_id: str, account_id: str, update_data: Dict) -> Dict:
+        """Update specific fields of an existing account"""
+        session = self._get_session()
+        try:
+            account = session.query(Account).filter(
+                and_(
+                    Account.user_id == user_id,
+                    Account.account_id == account_id
+                )
+            ).first()
+            
+            if not account:
+                raise ValueError(f"Account not found: {account_id}")
+            
+            # Update only the provided fields
+            for key, value in update_data.items():
+                if hasattr(account, key) and key not in ["id", "user_id", "account_id", "created_at"]:
+                    setattr(account, key, value)
+            
+            session.commit()
+            session.refresh(account)
+            return account.to_dict()
+        except Exception as e:
+            session.rollback()
+            raise
         finally:
             session.close()
     
@@ -699,6 +741,13 @@ class JSONDatabase:
             return user
         return None
     
+    def get_user_for_auth(self, username: str) -> Optional[Dict]:
+        """Get user with password hash for authentication purposes"""
+        users = self._read_file(Config.USERS_FILE)
+        if username in users:
+            return users[username].copy()
+        return None
+    
     # ========== NEW: Profile Management ==========
     
     def update_user_profile(self, user_id: str, **profile_data) -> Dict:
@@ -836,6 +885,23 @@ class JSONDatabase:
         """Get all bank accounts for a user"""
         accounts = self._read_file(Config.ACCOUNTS_FILE)
         return accounts.get(user_id, [])
+    
+    def update_account(self, user_id: str, account_id: str, update_data: Dict) -> Dict:
+        """Update specific fields of an existing account"""
+        accounts = self._read_file(Config.ACCOUNTS_FILE)
+        
+        if user_id not in accounts:
+            raise ValueError(f"User not found: {user_id}")
+        
+        # Find and update the account
+        for i, acc in enumerate(accounts[user_id]):
+            if acc.get("account_id") == account_id:
+                # Update only the provided fields
+                accounts[user_id][i].update(update_data)
+                self._write_file(Config.ACCOUNTS_FILE, accounts)
+                return accounts[user_id][i]
+        
+        raise ValueError(f"Account not found: {account_id}")
     
     def delete_account(self, user_id: str, account_id: str) -> bool:
         """Delete a bank account"""

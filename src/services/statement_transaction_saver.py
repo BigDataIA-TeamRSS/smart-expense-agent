@@ -76,9 +76,10 @@ def save_parsed_statement_transactions(
         }
     """
     try:
-        # Generate a stable account ID based on account info and filename
-        # This ensures same statement creates same account
-        account_key = f"{user_id}_{parsed.account_info.account_number_last4}_{parsed.account_info.bank_name}_{filename}"
+        # Generate a stable account ID based on account info (WITHOUT filename)
+        # This ensures the same physical account reuses the same database record
+        account_type_str = parsed.account_info.account_type.value if hasattr(parsed.account_info.account_type, 'value') else str(parsed.account_info.account_type)
+        account_key = f"{user_id}_{parsed.account_info.bank_name}_{parsed.account_info.account_number_last4}_{account_type_str}"
         account_id = f"pdf_{hashlib.md5(account_key.encode()).hexdigest()[:16]}"
         
         account_created = False
@@ -88,19 +89,68 @@ def save_parsed_statement_transactions(
             existing_accounts = db.get_user_accounts(user_id)
             existing_account = None
             
-            # Check if account already exists
+            # Check if account already exists by matching bank + last4 + type
             for acc in existing_accounts:
                 if acc.get("account_id") == account_id:
                     existing_account = acc
                     break
             
-            if not existing_account:
+            if existing_account:
+                # Account exists - update it with new statement info
+                update_data = {}
+                
+                # Update balance if we have a newer statement
+                if parsed.summary.ending_balance is not None:
+                    update_data["current_balance"] = parsed.summary.ending_balance
+                    update_data["available_balance"] = parsed.summary.ending_balance
+                
+                # Merge statement periods
+                existing_period = existing_account.get("statement_period")
+                new_start = str(parsed.account_info.statement_start_date) if parsed.account_info.statement_start_date else None
+                new_end = str(parsed.account_info.statement_end_date) if parsed.account_info.statement_end_date else None
+                
+                if new_start or new_end:
+                    # Parse existing period
+                    if isinstance(existing_period, str):
+                        import json
+                        try:
+                            existing_period = json.loads(existing_period)
+                        except:
+                            existing_period = None
+                    
+                    if existing_period and isinstance(existing_period, dict):
+                        # Merge date ranges: use earliest start and latest end
+                        existing_start = existing_period.get("start")
+                        existing_end = existing_period.get("end")
+                        
+                        merged_start = min([d for d in [existing_start, new_start] if d]) if any([existing_start, new_start]) else None
+                        merged_end = max([d for d in [existing_end, new_end] if d]) if any([existing_end, new_end]) else None
+                        
+                        update_data["statement_period"] = {
+                            "start": merged_start,
+                            "end": merged_end
+                        }
+                    else:
+                        # No existing period, use new one
+                        update_data["statement_period"] = {
+                            "start": new_start,
+                            "end": new_end
+                        }
+                
+                # Update last_synced timestamp
+                update_data["last_synced"] = datetime.now().isoformat()
+                
+                # Apply updates if any
+                if update_data:
+                    db.update_account(user_id, account_id, update_data)
+                
+            else:
                 # Create new account
                 account_data = {
                     "account_id": account_id,
                     "name": generate_account_name(parsed),
                     "institution_name": parsed.account_info.bank_name or "PDF Upload",
-                    "type": parsed.account_info.account_type.value if hasattr(parsed.account_info.account_type, 'value') else str(parsed.account_info.account_type),
+                    "type": account_type_str,
                     "subtype": "pdf_upload",
                     "mask": parsed.account_info.account_number_last4 or "****",
                     "source": "pdf_upload",

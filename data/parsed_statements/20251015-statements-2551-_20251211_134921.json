@@ -1,0 +1,69 @@
+{
+  "account_info": {
+    "account_holder": "SOMIL U SHAH",
+    "account_number_last4": "2551",
+    "account_number_masked": "XXXX XXXX XXXX 2551",
+    "account_type": "credit_card",
+    "bank_name": "Chase",
+    "bank_type": "chase_credit",
+    "statement_start_date": "2025-09-16",
+    "statement_end_date": "2025-10-15",
+    "routing_number": null
+  },
+  "summary": {
+    "beginning_balance": 8.48,
+    "ending_balance": 29.73,
+    "previous_balance": 8.48,
+    "new_balance": 29.73,
+    "payments_credits": 8.48,
+    "purchases": 29.73,
+    "fees_charged": 0.0,
+    "interest_charged": 0.0,
+    "credit_limit": 2000.0,
+    "available_credit": 1970.0,
+    "minimum_payment": 29.73,
+    "payment_due_date": "2025-11-12",
+    "rewards_balance": 2134
+  },
+  "transactions": [
+    {
+      "transaction_id": "pdf_ceeeed693f73",
+      "date": "2025-10-12",
+      "description": "AUTOMATIC PAYMENT - THANK YOU",
+      "original_description": "AUTOMATIC PAYMENT - THANK YOU",
+      "amount": 8.48,
+      "transaction_type": "credit",
+      "category": null,
+      "balance_after": null,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_a71ab74d6778",
+      "date": "2025-09-16",
+      "description": "*7C9UM5J93 Amzn.com/bill",
+      "original_description": "09/[ADDRESS_2]*7C9UM5J93 Amzn.com/bill WA",
+      "amount": 29.73,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": null,
+      "location": "WA",
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": "[PHONE_12]-6242609"
+    }
+  ],
+  "parsing_confidence": 0.9,
+  "parsing_notes": [
+    "PII was sanitized before LLM processing"
+  ],
+  "source_filename": "20251015-statements-2551-.pdf",
+  "parsed_at": "2025-12-11T13:49:21.259312",
+  "raw_text_length": 15992,
+  "page_count": 4,
+  "transaction_count": 2
+}

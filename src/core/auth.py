@@ -47,14 +47,22 @@ def handle_login():
             if not username or not password:
                 st.error("Please enter both username and password")
             else:
-                user = st.session_state.db.authenticate_user(username, password)
-                if user:
+                print(f"[AUTH] Attempting login for user: {username}")
+                try:
+                    from ui.api_client import get_api_client
+                    api = get_api_client()
+                    print(f"[AUTH] Calling API login endpoint...")
+                    result = api.login(username, password)
+                    print(f"[AUTH] Login successful, user ID: {result['user'].get('id')}")
                     st.session_state.logged_in = True
-                    st.session_state.current_user = user
+                    st.session_state.current_user = result["user"]
                     st.success("Logged in successfully!")
+                    # Rerun is necessary here to show the logged-in UI
+                    # This is one of the few cases where rerun is needed
                     st.rerun()
-                else:
-                    st.error("Invalid credentials")
+                except Exception as e:
+                    print(f"[AUTH] Login failed: {str(e)}")
+                    st.error(f"Login failed: {str(e)}")
 
 def handle_register():
     """Handle user registration"""
@@ -75,22 +83,33 @@ def handle_register():
             elif "@" not in new_email:
                 st.error("Please enter a valid email")
             else:
+                print(f"[AUTH] Attempting registration for user: {new_username}")
                 try:
-                    user = st.session_state.db.create_user(
-                        new_username, new_password, new_email
-                    )
+                    from ui.api_client import get_api_client
+                    api = get_api_client()
+                    print(f"[AUTH] Calling API register endpoint...")
+                    user = api.register(new_username, new_email, new_password)
+                    print(f"[AUTH] Registration successful, user ID: {user.get('id')}")
                     st.success("✅ Registration successful! Please login.")
-                except ValueError as e:
-                    st.error(str(e))
+                except Exception as e:
+                    print(f"[AUTH] Registration failed: {str(e)}")
+                    st.error(f"Registration failed: {str(e)}")
 
 def logout():
     """Logout the current user"""
+    print(f"[AUTH] Logging out user: {st.session_state.current_user.get('username') if st.session_state.current_user else 'Unknown'}")
     st.session_state.logged_in = False
     st.session_state.current_user = None
+    # Clear API token
+    if 'api_token' in st.session_state:
+        del st.session_state['api_token']
     # Clear any stored tokens
-    for key in ['link_token', 'hosted_link_url']:
+    for key in ['link_token', 'hosted_link_url', 'api_client']:
         if key in st.session_state:
             del st.session_state[key]
+    print(f"[AUTH] Logout complete")
+    # Rerun is necessary here to show the logged-out UI
+    # This is one of the few cases where rerun is needed
     st.rerun()
 
 def show_profile():

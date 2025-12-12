@@ -788,8 +788,8 @@ class StatementParser:
                     return result
                 
                 if attempt < max_retries:
-                    logger.warning(f"Low confidence ({result.parsing_confidence:.0%}), retrying in 60 seconds...")
-                    time.sleep(60)  # Wait 1 minute before retry
+                    logger.warning(f"Low confidence ({result.parsing_confidence:.0%}), retrying in 10 seconds...")
+                    time.sleep(10)  # Wait 10 seconds before retry
                     
             except Exception as e:
                 last_error = e
@@ -805,8 +805,15 @@ class StatementParser:
                 
                 if attempt < max_retries:
                     logger.warning(f"Attempt {attempt + 1} failed: {error_message}")
-                    logger.info("Waiting 60 seconds before retry...")
-                    time.sleep(60)  # Wait 1 minute before retry
+                    # Only wait if the error code is 429 (Too Many Requests)
+                    should_wait = False
+                    if hasattr(e, "status_code") and getattr(e, "status_code", None) == 429:
+                        should_wait = True
+                    elif "429" in error_message or "too many requests" in error_message.lower():
+                        should_wait = True
+                    if should_wait:
+                        logger.info("Received 429 error: Waiting 60 seconds before retry...")
+                        time.sleep(60)  # Wait 1 minute before retry
         
         # Return best result or raise error
         if best_result:

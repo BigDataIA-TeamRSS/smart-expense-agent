@@ -119,12 +119,14 @@ def get_scoped_session():
 from src.models.user import User
 from src.models.account import Account
 from src.models.transaction import Transaction
+from src.models.processed_transaction import ProcessedTransaction
 
 __all__ = [
     "Base",
     "User",
     "Account",
     "Transaction",
+    "ProcessedTransaction",
     "init_db",
     "get_session",
     "get_scoped_session",

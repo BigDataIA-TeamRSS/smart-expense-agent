@@ -1,0 +1,122 @@
+{
+  "account_info": {
+    "account_holder": "SOMIL SHAH",
+    "account_number_last4": "5820",
+    "account_number_masked": "XXXX-XXXX-5820",
+    "account_type": "checking",
+    "bank_name": "Chase",
+    "bank_type": "chase_checking",
+    "statement_start_date": "2025-07-12",
+    "statement_end_date": "2025-08-12",
+    "routing_number": null
+  },
+  "summary": {
+    "beginning_balance": 336.57,
+    "ending_balance": 1304.79,
+    "total_deposits": 3596.62,
+    "total_withdrawals": 2628.4
+  },
+  "transactions": [
+    {
+      "transaction_id": "pdf_52a00a2dac79",
+      "date": "2025-07-18",
+      "description": "Northeastern Uni Payroll PPD",
+      "original_description": "Northeastern Uni Payroll PPD ID: [PHONE_4]",
+      "amount": 2496.62,
+      "transaction_type": "credit",
+      "category": null,
+      "balance_after": 2833.19,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_8a5a4847c69a",
+      "date": "2025-07-22",
+      "description": "Gsbank Payment",
+      "original_description": "[ADDRESS_4] Gsbank Payment [SSN_2] Web ID: [PHONE_5]",
+      "amount": 1980.28,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 852.91,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_9fe26bfa0126",
+      "date": "2025-07-29",
+      "description": "Zelle Payment To Jainam Neu",
+      "original_description": "Zelle Payment To Jainam Neu Jpm99Bhembr3",
+      "amount": 200.0,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 652.91,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_fdda021747ca",
+      "date": "2025-08-01",
+      "description": "Ending IN",
+      "original_description": "08/[ADDRESS_3] Ending IN 2551",
+      "amount": 70.74,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 582.17,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_3840f7a2c5e4",
+      "date": "2025-08-04",
+      "description": "Discover E-Payment",
+      "original_description": "Discover E-Payment 8137 Web ID: [PHONE_6]",
+      "amount": 377.38,
+      "transaction_type": "debit",
+      "category": null,
+      "balance_after": 204.79,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    },
+    {
+      "transaction_id": "pdf_5c6eccc828b8",
+      "date": "2025-08-07",
+      "description": "Zelle Payment From Jainam Shah",
+      "original_description": "Zelle Payment From Jainam Shah Baczsled5Xq7",
+      "amount": 1100.0,
+      "transaction_type": "credit",
+      "category": null,
+      "balance_after": 1304.79,
+      "location": null,
+      "is_recurring": false,
+      "pending": false,
+      "check_number": null,
+      "reference_number": null
+    }
+  ],
+  "parsing_confidence": 0.95,
+  "parsing_notes": [
+    "Inferred year for transactions from statement period.",
+    "Some descriptions are truncated or contain extra information.",
+    "PII was sanitized before LLM processing"
+  ],
+  "source_filename": "20250812-statements-5820- (1).pdf",
+  "parsed_at": "2025-12-11T22:48:16.747956",
+  "raw_text_length": 4261,
+  "page_count": 2,
+  "transaction_count": 6
+}

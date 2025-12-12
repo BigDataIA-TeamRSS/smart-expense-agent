@@ -1,11 +1,21 @@
 # pages/connect_bank.py
 """Bank connection page for Smart Expense Analyzer POC"""
-
 import streamlit as st
 from typing import Dict
+import sys
+from pathlib import Path
 
-def show_connect_bank(db, plaid_service, current_user: Dict):
+# Add ui directory to path for imports
+ui_dir = Path(__file__).parent.parent
+if str(ui_dir) not in sys.path:
+    sys.path.insert(0, str(ui_dir))
+
+from api_client import get_api_client
+
+def show_connect_bank(current_user: Dict):
     """Show the bank connection page"""
+    print(f"[CONNECT_BANK] Loading connect bank page for user: {current_user.get('id')}")
+    
     st.header("Connect Your Bank Account")
     
     col1, col2 = st.columns([2, 1])
@@ -24,52 +34,62 @@ def show_connect_bank(db, plaid_service, current_user: Dict):
         
         # Generate Link button
         if st.button("🔗 Generate Bank Connection Link", type="primary", use_container_width=True):
+            print("[CONNECT_BANK] Generate link button clicked")
             with st.spinner("Creating secure link..."):
-                result = plaid_service.create_link_token(
-                    current_user["id"],
-                    current_user["email"]
-                )
-                
-                if result:
-                    st.session_state.link_token = result["link_token"]
-                    st.session_state.hosted_link_url = result["hosted_link_url"]
+                try:
+                    api = get_api_client()
+                    print("[CONNECT_BANK] Calling API: /api/plaid/link-token")
+                    result = api.create_link_token()
+                    print(f"[CONNECT_BANK] Link token created: {result.get('link_token')[:20]}...")
                     
-                    st.success("✅ Link generated successfully!")
-                    st.markdown("### 🏦 Connect Your Bank")
-                    st.markdown(f"""
-                    **Step 1:** Click the link below to open Plaid in a new tab:
-                    
-                    [{result['hosted_link_url']}]({result['hosted_link_url']})
-                    """)
-                    
-                    # Also show as code for easy copying
-                    st.code(result['hosted_link_url'])
-                    
-                    st.markdown("""
-                    **Step 2:** Complete the bank connection in the new tab
-                    
-                    **Step 3:** Return here and click 'Check Connection Status'
-                    """)
-                else:
-                    st.error("Failed to generate link. Please try again.")
+                    if result:
+                        st.session_state.link_token = result["link_token"]
+                        st.session_state.hosted_link_url = result["hosted_link_url"]
+                        
+                        st.success("✅ Link generated successfully!")
+                        st.markdown("### 🏦 Connect Your Bank")
+                        st.markdown(f"""
+                        **Step 1:** Click the link below to open Plaid in a new tab:
+                        
+                        [{result['hosted_link_url']}]({result['hosted_link_url']})
+                        """)
+                        
+                        # Also show as code for easy copying
+                        st.code(result['hosted_link_url'])
+                        
+                        st.markdown("""
+                        **Step 2:** Complete the bank connection in the new tab
+                        
+                        **Step 3:** Return here and click 'Check Connection Status'
+                        """)
+                except Exception as e:
+                    print(f"[CONNECT_BANK] Error creating link token: {str(e)}")
+                    st.error(f"Failed to generate link: {str(e)}")
         
         # Check status section
         if 'link_token' in st.session_state:
             st.markdown("---")
             
             if st.button("✅ Check Connection Status", type="primary", use_container_width=True):
+                print("[CONNECT_BANK] Check status button clicked")
                 with st.spinner("Checking connection status..."):
-                    status = plaid_service.get_link_token_status(st.session_state.link_token)
-                    
-                    if status["status"] == "success":
-                        handle_successful_connection(
-                            db, plaid_service, current_user, status
-                        )
-                    elif status["status"] == "pending":
-                        st.warning("⏳ Connection pending. Please complete the process in Plaid Link.")
-                        st.info("If you've completed it, wait a moment and try checking again.")
-                    else:
-                        st.error(f"❌ Error: {status.get('message', 'Unknown error')}")
+                    try:
+                        api = get_api_client()
+                        print(f"[CONNECT_BANK] Calling API: /api/plaid/link-status with token: {st.session_state.link_token[:20]}...")
+                        status = api.get_link_status(st.session_state.link_token)
+                        print(f"[CONNECT_BANK] Link status: {status.get('status')}")
+                        
+                        if status["status"] == "success":
+                            print("[CONNECT_BANK] Connection successful, handling...")
+                            handle_successful_connection(api, current_user, status)
+                        elif status["status"] == "pending":
+                            st.warning("⏳ Connection pending. Please complete the process in Plaid Link.")
+                            st.info("If you've completed it, wait a moment and try checking again.")
+                        else:
+                            st.error(f"❌ Error: {status.get('message', 'Unknown error')}")
+                    except Exception as e:
+                        print(f"[CONNECT_BANK] Error checking status: {str(e)}")
+                        st.error(f"Error checking connection status: {str(e)}")
     
     with col2:
         # Information panel
@@ -122,73 +142,39 @@ def show_connect_bank(db, plaid_service, current_user: Dict):
             - And thousands more
             """)
 
-def handle_successful_connection(db, plaid_service, current_user: Dict, status: Dict):
+def handle_successful_connection(api, current_user: Dict, status: Dict):
     """Handle a successful bank connection"""
+    print(f"[CONNECT_BANK] Handling successful connection, public_token: {status.get('public_token')[:20]}...")
     st.success("🎉 Bank connection successful!")
     
-    # Exchange public token for access token
+    # Exchange public token for access token via API
     with st.spinner("Securing your connection..."):
-        exchange_result = plaid_service.exchange_public_token(status["public_token"])
-        
-        if not exchange_result:
-            st.error("Failed to complete connection. Please try again.")
-            return
-    
-    # Get account details
-    with st.spinner("Fetching account information..."):
-        accounts = plaid_service.get_accounts(exchange_result["access_token"])
-        
-        if not accounts:
-            st.error("No accounts found. Please try again.")
-            return
-    
-    # Save accounts to database
-    saved_accounts = []
-    for account in accounts:
-        account["access_token"] = exchange_result["access_token"]
-        account["item_id"] = exchange_result["item_id"]
-        account["institution_name"] = status["institution"].get("name", "Unknown Bank")
-        account["institution_id"] = status["institution"].get("institution_id", "")
-        
-        saved_account = db.save_bank_account(current_user["id"], account)
-        saved_accounts.append(saved_account)
-    
-    st.success(f"✅ Connected {len(saved_accounts)} accounts successfully!")
-    
-    # Display connected accounts
-    st.markdown("### Connected Accounts:")
-    for account in accounts:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.info(f"**{account['name']}**")
-        with col2:
-            st.metric("Type", account['type'].title())
-        with col3:
-            if account.get('mask'):
-                st.metric("Account", f"****{account['mask']}")
-    
-    # Sync transactions
-    with st.spinner("Syncing transactions... This may take a moment..."):
-        sync_result = plaid_service.sync_transactions(exchange_result["access_token"])
-        
-        if sync_result["transactions"]:
-            # Save transactions for each account
-            transactions_by_account = {}
-            for txn in sync_result["transactions"]:
-                account_id = txn["account_id"]
-                if account_id not in transactions_by_account:
-                    transactions_by_account[account_id] = []
-                transactions_by_account[account_id].append(txn)
+        try:
+            print("[CONNECT_BANK] Calling API: /api/plaid/exchange-token")
+            exchange_result = api.exchange_public_token(status["public_token"])
+            print(f"[CONNECT_BANK] Exchange successful, accounts: {len(exchange_result.get('accounts', []))}")
+            print(f"[CONNECT_BANK] Transactions saved: {exchange_result.get('transactions_saved', 0)}")
             
-            total_saved = 0
-            for account_id, txns in transactions_by_account.items():
-                saved_count = db.save_transactions(current_user["id"], account_id, txns)
-                total_saved += saved_count
+            saved_accounts = exchange_result.get("accounts", [])
             
-            st.success(f"✅ Synced {total_saved} new transactions!")
+            st.success(f"✅ Connected {len(saved_accounts)} accounts successfully!")
             
-            # Show summary
-            if total_saved > 0:
+            # Display connected accounts
+            st.markdown("### Connected Accounts:")
+            for account in saved_accounts:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.info(f"**{account.get('name', 'Unknown')}**")
+                with col2:
+                    st.metric("Type", account.get('type', 'Unknown').title())
+                with col3:
+                    if account.get('mask'):
+                        st.metric("Account", f"****{account['mask']}")
+            
+            # Show transaction sync results
+            transactions_saved = exchange_result.get("transactions_saved", 0)
+            if transactions_saved > 0:
+                st.success(f"✅ Synced {transactions_saved} new transactions!")
                 st.balloons()
                 st.markdown("### 🎊 Setup Complete!")
                 st.markdown("""
@@ -198,11 +184,19 @@ def handle_successful_connection(db, plaid_service, current_user: Dict, status: 
                 - See spending analytics in **Analytics** tab
                 - Check your dashboard for an overview
                 """)
-        else:
-            st.info("No transactions found. This is normal for new accounts.")
-    
-    # Clear session state
-    if 'link_token' in st.session_state:
-        del st.session_state.link_token
-    if 'hosted_link_url' in st.session_state:
-        del st.session_state.hosted_link_url
+            else:
+                st.info("No transactions found. This is normal for new accounts.")
+            
+            # Clear session state
+            if 'link_token' in st.session_state:
+                del st.session_state.link_token
+            if 'hosted_link_url' in st.session_state:
+                del st.session_state.hosted_link_url
+            
+            print("[CONNECT_BANK] Connection handling complete")
+            
+        except Exception as e:
+            print(f"[CONNECT_BANK] Error handling connection: {str(e)}")
+            st.error(f"Failed to complete connection: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
