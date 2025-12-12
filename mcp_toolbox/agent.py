@@ -130,9 +130,59 @@
 
 # app = App(root_agent=root_agent, name="mcp_toolbox")
 
-from mcp_toolbox.agents.root_orchestrator import create_root_agent
+# from mcp_toolbox.agents.root_orchestrator import create_root_agent
+# from google.adk.apps import App
+
+# root_agent = create_root_agent()
+
+# app = App(root_agent=root_agent, name="mcp_toolbox")
+
+
+from google.adk.agents import Agent
 from google.adk.apps import App
+from toolbox_core import ToolboxSyncClient
+# from dotenv import load_dotenv
+from google.genai import types
 
-root_agent = create_root_agent()
+# load_dotenv()
 
-app = App(root_agent=root_agent, name="mcp_toolbox")
+from dotenv import load_dotenv
+import os
+load_dotenv()
+CLIENT_URL = os.getenv("CLIENT_URL", "https://toolbox-service-440584682160.us-central1.run.app")
+
+client = ToolboxSyncClient(CLIENT_URL)
+
+root_agent = Agent(
+    name='root_agent',
+    model='gemini-2.5-flash',
+    # instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
+    instruction="""Your responsibilities:
+    1. Detect new unprocessed transactions from the database
+    2. Categorize transactions into appropriate spending categories
+    3. Detect recurring subscription patterns
+    4. Identify potentially fraudulent or risky transactions
+
+    You have access to these tools:
+    • detect_new_transactions: Find unprocessed transactions for a user
+    • categorize_transaction: Categorize and standardize merchant names
+    • detect_subscriptions: Detect recurring payment patterns
+    • detect_fraud: Analyze transactions for fraud risk
+
+    Workflow:
+    1. First, call detect_new_transactions to get unprocessed transactions
+    2. For each transaction:
+        a. Call categorize_transaction to assign category and standardize merchant
+        b. Call detect_fraud to check for anomalies
+    3. After processing all transactions, call detect_subscriptions to find patterns
+    4. Summarize the results
+
+    Always process transactions sequentially and provide clear status updates.""",
+    tools=client.load_toolset(),
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.3,
+    )
+)
+
+# run using 'adk run mcp_toolbox'
+# or 'adk web'

@@ -137,7 +137,7 @@ def show_profile_tab(db, current_user):
         st.markdown("---")
         
         # Submit button
-        submitted = st.form_submit_button("Save Profile", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("Save Profile", type="primary")
         
         if submitted:
             try:
@@ -220,7 +220,7 @@ def show_preferences_tab(db, current_user):
         st.info(f"""
         If your typical dining spending is $200/month:
         
-        With threshold **{alert_threshold}x**:
+        With limit for yourself **{alert_threshold}x**:
         - You'll get an alert when dining exceeds **${200 * alert_threshold:.2f}**
         - Current setting: **{(alert_threshold - 1) * 100:.0f}% above your baseline**
         """)
@@ -228,7 +228,7 @@ def show_preferences_tab(db, current_user):
         st.markdown("---")
         
         # Submit
-        submitted = st.form_submit_button("Save Preferences", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("Save Preferences", type="primary")
         
         if submitted:
             try:

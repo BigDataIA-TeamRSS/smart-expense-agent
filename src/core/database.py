@@ -321,6 +321,19 @@ class PostgreSQLDatabase:
     
     # ========== Transaction Operations ==========
     
+    def _parse_date(self, date_value):
+        """Parse date from string with multiple format support"""
+        if date_value is None:
+            return None
+        if not isinstance(date_value, str):
+            return date_value
+        for fmt in ["%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y"]:
+            try:
+                return datetime.strptime(date_value, fmt).date()
+            except ValueError:
+                continue
+        return None
+    
     def save_transactions(self, user_id: str, account_id: str, transactions: List[Dict]) -> int:
         """Save transactions for a specific account with deduplication"""
         from src.services.transaction_deduplicator import get_deduplicator
@@ -347,23 +360,27 @@ class PostgreSQLDatabase:
             
             unique_new = result["unique_new"]
             
+            # Batch check for existing transaction_ids (fixes N+1 query)
+            transaction_ids_to_check = [t.get("transaction_id") for t in unique_new if t.get("transaction_id")]
+            existing_ids_query = session.query(Transaction.transaction_id).filter(
+                Transaction.transaction_id.in_(transaction_ids_to_check)
+            ).all()
+            existing_ids = {row[0] for row in existing_ids_query}
+            
             # Insert unique transactions
+            inserted_count = 0
             for txn_data in unique_new:
-                # Check if transaction already exists by transaction_id
-                existing_txn = session.query(Transaction).filter(
-                    Transaction.transaction_id == txn_data.get("transaction_id")
-                ).first()
-                
-                if existing_txn:
-                    continue  # Skip duplicates
+                # Skip if transaction already exists (using batch-queried set)
+                if txn_data.get("transaction_id") in existing_ids:
+                    continue
                 
                 transaction = Transaction(
                     transaction_id=txn_data.get("transaction_id"),
                     account_id=account.id,  # Use internal account ID
                     user_id=user_id,
                     amount=txn_data.get("amount"),
-                    date=datetime.strptime(txn_data.get("date"), "%Y-%m-%d").date() if isinstance(txn_data.get("date"), str) else txn_data.get("date"),
-                    authorized_date=datetime.strptime(txn_data.get("authorized_date"), "%Y-%m-%d").date() if isinstance(txn_data.get("authorized_date"), str) else txn_data.get("authorized_date"),
+                    date=self._parse_date(txn_data.get("date")),
+                    authorized_date=self._parse_date(txn_data.get("authorized_date")),
                     name=txn_data.get("name"),
                     merchant_name=txn_data.get("merchant_name"),
                     merchant_entity_id=txn_data.get("merchant_entity_id"),
@@ -389,9 +406,10 @@ class PostgreSQLDatabase:
                 )
                 
                 session.add(transaction)
+                inserted_count += 1
             
             session.commit()
-            return len(unique_new)
+            return inserted_count
         except Exception as e:
             session.rollback()
             raise
@@ -446,123 +464,6 @@ class PostgreSQLDatabase:
                 session.commit()
                 return deleted > 0
             return False
-        except Exception as e:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-    
-    # ========== NEW: Profile Management ==========
-    
-    def update_user_profile(self, user_id: str, **profile_data) -> Dict:
-        """Update user profile with optional fields"""
-        session = self._get_session()
-        try:
-            user = session.query(User).filter(User.id == user_id).first()
-            
-            if not user:
-                raise ValueError(f"User {user_id} not found")
-            
-            # Update only provided fields
-            for key, value in profile_data.items():
-                if hasattr(user, key):
-                    setattr(user, key, value)
-            
-            user.updated_at = datetime.utcnow()
-            
-            session.commit()
-            session.refresh(user)
-            
-            return user.to_dict()
-        except Exception as e:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-    
-    def update_user_preferences(self, user_id: str, **preferences) -> Dict:
-        """Update user preferences (alert thresholds, etc.)"""
-        session = self._get_session()
-        try:
-            user = session.query(User).filter(User.id == user_id).first()
-            
-            if not user:
-                raise ValueError(f"User {user_id} not found")
-            
-            # Update preference fields
-            for key, value in preferences.items():
-                if hasattr(user, key):
-                    setattr(user, key, value)
-            
-            user.updated_at = datetime.utcnow()
-            
-            session.commit()
-            session.refresh(user)
-            
-            return user.to_dict()
-        except Exception as e:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-    
-    def change_password(self, user_id: str, new_password: str) -> bool:
-        """Change user password"""
-        session = self._get_session()
-        try:
-            user = session.query(User).filter(User.id == user_id).first()
-            
-            if not user:
-                raise ValueError(f"User {user_id} not found")
-            
-            # Hash new password
-            hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
-            user.password_hash = hashed_password
-            user.updated_at = datetime.utcnow()
-            
-            session.commit()
-            return True
-        except Exception as e:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-    
-    def clear_user_data(self, user_id: str) -> bool:
-        """Clear all transactions and accounts for a user (keeps user account)"""
-        session = self._get_session()
-        try:
-            # Delete transactions
-            session.query(Transaction).filter(
-                Transaction.user_id == user_id
-            ).delete()
-            
-            # Delete accounts
-            session.query(Account).filter(
-                Account.user_id == user_id
-            ).delete()
-            
-            session.commit()
-            return True
-        except Exception as e:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-    
-    def delete_user(self, user_id: str) -> bool:
-        """Permanently delete user and all associated data"""
-        session = self._get_session()
-        try:
-            user = session.query(User).filter(User.id == user_id).first()
-            
-            if not user:
-                return False
-            
-            # CASCADE will delete all related data
-            session.delete(user)
-            session.commit()
-            return True
         except Exception as e:
             session.rollback()
             raise

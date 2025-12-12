@@ -13,8 +13,12 @@ from dotenv import load_dotenv
 from google.adk.agents import Agent
 from toolbox_core import ToolboxSyncClient
 from google.genai import types
-
+# from dotenv import load_dotenv
+import os
 load_dotenv()
+CLIENT_URL = os.getenv("CLIENT_URL", "https://toolbox-service-440584682160.us-central1.run.app")
+# client = ToolboxSyncClient(CLIENT_URL)
+# toolset = client.load_toolset()
 
 
 class DataProcessorAgent:
@@ -105,7 +109,7 @@ class DataProcessorAgent:
         'ANNUAL', 'MONTHLY', 'YEARLY', 'HOTSTAR'
     ]
     
-    def __init__(self, toolbox_url: str = "http://127.0.0.1:5000"):
+    def __init__(self, toolbox_url: str = CLIENT_URL):
         """Initialize Agent 1 with MCP Toolbox connection"""
         
         print("Initializing Agent 1: Data Processor (FIXED VERSION)...")

@@ -9,12 +9,15 @@ import json
 import uuid
 from typing import Dict, Any, List, Optional
 from toolbox_core import ToolboxSyncClient
-
+from dotenv import load_dotenv
+import os
+load_dotenv()
+CLIENT_URL = os.getenv("CLIENT_URL", "https://toolbox-service-440584682160.us-central1.run.app")
 
 class QueryAgent:
     """Agent for answering analytical questions about finances"""
     
-    def __init__(self, toolbox_url: str = "http://127.0.0.1:5000"):
+    def __init__(self, toolbox_url: str = CLIENT_URL):
         print("Initializing Query Agent...")
         self.toolbox_client = ToolboxSyncClient(toolbox_url)
         
@@ -213,6 +216,14 @@ class QueryAgent:
             
             # Most expensive
             if any(w in question for w in ['most', 'highest', 'expensive', 'maximum']):
+                # Defensive check for empty list (should be caught above, but be safe)
+                if not subscriptions:
+                    return {
+                        'status': 'success',
+                        'answer': 'You have no active subscriptions.',
+                        'data': [],
+                        'tools_called': ['get-subscription-details']
+                    }
                 top = max(subscriptions, key=lambda x: float(x.get('amount', 0)))
                 
                 answer = f"💰 Your most expensive subscription is **{top['merchant_standardized']}** at **${float(top['amount']):.2f}/month** (${float(top['annual_cost']):.2f}/year)."

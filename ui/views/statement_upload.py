@@ -1083,7 +1083,7 @@ def render_upload_tab(db, current_user: Dict):
         col2.text(f"{f.size / 1024:.1f} KB")
     
     # Parse button
-    if st.button("🔍 Parse Statements", type="primary", use_container_width=True):
+    if st.button("🔍 Parse Statements", type="primary"):
         # Store files in session state before parsing
         st.session_state.parsed_files = [f.name for f in uploaded_files]
         parse_and_display_results(uploaded_files, parser, db, current_user)
@@ -1241,7 +1241,6 @@ def display_successful_parse(result: Dict, db, current_user: Dict):
             # Editable table
             edited_df = st.data_editor(
                 df,
-                use_container_width=True,
                 hide_index=True,
                 column_config={
                     "Date": st.column_config.TextColumn("Date", width="small"),
@@ -1483,7 +1482,7 @@ def render_history_tab(db, current_user: Dict):
         })
     
     df = pd.DataFrame(data)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, hide_index=True)
     
     # Summary stats
     st.markdown("---")

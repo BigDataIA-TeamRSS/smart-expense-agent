@@ -23,7 +23,7 @@ def show_connect_bank(db, plaid_service, current_user: Dict):
         """)
         
         # Generate Link button
-        if st.button("🔗 Generate Bank Connection Link", type="primary", use_container_width=True):
+        if st.button("🔗 Generate Bank Connection Link", type="primary"):
             with st.spinner("Creating secure link..."):
                 result = plaid_service.create_link_token(
                     current_user["id"],
@@ -57,7 +57,7 @@ def show_connect_bank(db, plaid_service, current_user: Dict):
         if 'link_token' in st.session_state:
             st.markdown("---")
             
-            if st.button("✅ Check Connection Status", type="primary", use_container_width=True):
+            if st.button("✅ Check Connection Status", type="primary"):
                 with st.spinner("Checking connection status..."):
                     status = plaid_service.get_link_token_status(st.session_state.link_token)
                     

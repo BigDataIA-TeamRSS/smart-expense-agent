@@ -8,11 +8,13 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from toolbox_core import ToolboxSyncClient
-
-
+from dotenv import load_dotenv
+import os
+load_dotenv()
+CLIENT_URL = os.getenv("CLIENT_URL", "https://toolbox-service-440584682160.us-central1.run.app")
 class FinancialAnalystAgent:
     
-    def __init__(self, toolbox_url: str = "http://127.0.0.1:5000"):
+    def __init__(self, toolbox_url: str = CLIENT_URL):
         print("Initializing Agent 2: Financial Analyst...")
         self.toolbox_client = ToolboxSyncClient(toolbox_url)
         

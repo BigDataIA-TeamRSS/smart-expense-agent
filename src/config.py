@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 env_path=Path(__file__).parent.parent/'.env'
 print(env_path)
 load_dotenv(env_path,override=True)
-print(os.getenv("GEMINI_API_KEY"))
 
 class Config:
     """Application configuration"""

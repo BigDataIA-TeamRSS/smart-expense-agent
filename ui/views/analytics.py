@@ -242,7 +242,6 @@ def display_category_analysis(category_data: List[Dict]):
             "Average": "${:.2f}",
             "Percentage": "{:.1f}%"
         }),
-        use_container_width=True,
         hide_index=True
     )
     
@@ -254,7 +253,7 @@ def display_category_analysis(category_data: List[Dict]):
             st.progress(min(item["Percentage"] / 100, 1.0))
             st.caption(f"{item['Category']} - {item['Count']} transactions")
         with col2:
-            st.metric("", f"${item['Amount']:.2f}")
+            st.metric(label="Amount", value=f"${item['Amount']:.2f}", label_visibility="hidden")
 
 def analyze_merchants(transactions: List[Dict]) -> List[Dict]:
     """Analyze spending by merchant"""

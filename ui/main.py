@@ -1,14 +1,15 @@
 """Main Streamlit application for Smart Expense Analyzer POC"""
 import sys
 from pathlib import Path
-from views.ai_agents import show_ai_agents  # ADD THIS LINE
 
-# Add the project root to Python path so we can import from src/
-project_root = Path(__file__).parent.parent.parent
+# Add the project root to Python path FIRST - before any other imports
+# ui/main.py -> parent = ui/ -> parent = bigDataFinalProject/
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 import streamlit as st
 from src.config import Config
+from views.ai_agents import show_ai_agents
 from src.core.database import get_database
 from src.integrations.plaid_service import PlaidService
 

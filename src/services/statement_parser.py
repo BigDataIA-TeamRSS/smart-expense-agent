@@ -132,7 +132,7 @@ class ParsedTransaction(BaseModel):
             try:
                 from dateutil import parser as date_parser
                 return date_parser.parse(v).date()
-            except:
+            except Exception:
                 pass
         raise ValueError(f"Cannot parse date: {v}")
     
