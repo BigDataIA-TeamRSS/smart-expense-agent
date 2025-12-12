@@ -430,6 +430,10 @@ All tools are accessible through the MCP Toolbox service. See `mcp_toolbox/tools
      --allow-unauthenticated
    ```
 
+### Recording Link :
+https://northeastern.zoom.us/rec/share/pnP8f2gtmABJxblDdxpoh9VjvMS1xByQh_F5bpbN6D6Zv0eThKxCAOjno773AyYI.RBFbGT9nX-IXxhR8 
+Passcode: $6r@mE3=
+
 ### Environment Variables in Cloud Run
 
 Set all `.env` variables as Cloud Run environment variables:
@@ -519,3 +523,4 @@ For issues and questions:
 ---
 
 **Built with ❤️ by Team RSS**
+
